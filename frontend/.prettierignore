@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Vite cache
+.vite/
+
+# Config files যেগুলোতে Prettier auto-format causing issues
+package-lock.json
+
+# Env files
+.env*
+
+# Generated
+*.log

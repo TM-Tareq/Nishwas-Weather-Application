@@ -9,10 +9,7 @@
 
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    './index.html',
-    './src/**/*.{js,jsx}',
-  ],
+  content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
       colors: {
@@ -31,12 +28,12 @@ export default {
         },
         // AQI scale colors (US EPA standard)
         aqi: {
-          good: '#22c55e',           // 0-50    Good
-          moderate: '#eab308',       // 51-100  Moderate
-          unhealthySG: '#f97316',    // 101-150 Unhealthy for Sensitive Groups
-          unhealthy: '#ef4444',      // 151-200 Unhealthy
-          veryUnhealthy: '#a855f7',  // 201-300 Very Unhealthy
-          hazardous: '#7f1d1d',      // 301+    Hazardous
+          good: '#22c55e', // 0-50    Good
+          moderate: '#eab308', // 51-100  Moderate
+          unhealthySG: '#f97316', // 101-150 Unhealthy for Sensitive Groups
+          unhealthy: '#ef4444', // 151-200 Unhealthy
+          veryUnhealthy: '#a855f7', // 201-300 Very Unhealthy
+          hazardous: '#7f1d1d', // 301+    Hazardous
         },
       },
       fontFamily: {
