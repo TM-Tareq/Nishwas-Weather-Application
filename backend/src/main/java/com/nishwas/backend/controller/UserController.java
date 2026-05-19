@@ -1,5 +1,6 @@
 package com.nishwas.backend.controller;
 
+import com.nishwas.backend.dto.AuthResponse;
 import com.nishwas.backend.entity.User;
 import com.nishwas.backend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
