@@ -85,7 +85,7 @@ Installable, offline-capable, mobile-first experience that works seamlessly acro
 Make sure the following are installed on your system:
 
 - Node.js 20.x LTS or higher
-- Java 17 LTS
+- Java 25 LTS
 - MySQL 8.x
 - Git
 
