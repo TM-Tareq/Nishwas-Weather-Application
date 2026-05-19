@@ -39,7 +39,7 @@ public class AuthService {
                 token,
                 savedUser.getId(),
                 savedUser.getEmail(),
-                savedUser.getPassword()
+                savedUser.getName()
         );
     }
 

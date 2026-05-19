@@ -3,9 +3,11 @@ import { Loader2 } from 'lucide-react';
 const Button = ({
     variant = 'primary',
     size = 'md',
-    isLoading = 'false',
-    disabled = 'false',
-    onclick,
+    isLoading = false,
+    fullWidth = false,
+    disabled = false,
+    type = 'button',
+    onClick,
     children,
 }) => {
     const variantStyles = {
@@ -24,16 +26,20 @@ const Button = ({
     const baseStyles =
     'inline-flex items-center justify-center font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
-  // Combine all styles
-    const finalClassName = `${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]}`;
+    const widthSyte = fullWidth ? 'w-full' : '';
+
+    // Combine all styles
+    const finalClassName = `${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${widthSyte}`;
+
 
   // Button disabled if explicitly disabled OR currently loading
     const isButtonDisabled = disabled || isLoading;
 
     return <>
         <button
+          type={type}
           className={finalClassName}
-          onclick={onclick}
+          onClick={onClick}
           disabled={isButtonDisabled}
         >
             {isLoading ? (
