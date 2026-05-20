@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { MapPin, ArrowRight, CheckCircle2, AlertTriangle, XCircle, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useAuthStore from '@/features/auth/store/authStore';
 import useProfileStore from '@/features/profile/store/profileStore';
 import useGeolocation from '@/hooks/useGeolocation';
@@ -11,6 +12,7 @@ import useDecisionEngine from '@/features/suggestion/hooks/useDecisionEngine';
 import WeatherCard from '@/features/weather/components/WeatherCard';
 import AqiCard from '@/features/weather/components/AqiCard';
 import ForecastCard from '@/features/weather/components/ForecastCard';
+import ForecastChartCard from '@/features/weather/components/ForecastChartCard';
 import HealthTipsCard from '@/features/weather/components/HealthTipsCard';
 import TodayHighlights from '@/features/weather/components/TodayHighlights';
 import CitySearchBar from '@/features/weather/components/CitySearchBar';
@@ -68,6 +70,7 @@ const OutdoorStatusCard = ({ aqi, isLoading, error }) => {
 // ─── Dashboard Page ───────────────────────────────────────────────────────────
 
 const DashboardPage = () => {
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const [selectedCity, setSelectedCity] = useState(null);
 
@@ -90,7 +93,7 @@ const DashboardPage = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
-              Good day, {user?.name}! 👋
+              {t('dashboard.greeting', { name: user?.name })} 👋
             </h2>
             {locationError && !selectedCity ? (
               <div className="flex items-center gap-1.5 mt-1">
@@ -98,7 +101,7 @@ const DashboardPage = () => {
                 <p className="text-sm text-gray-500">{locationError}</p>
               </div>
             ) : (
-              <p className="text-sm text-gray-500 mt-0.5">Here's today's weather overview</p>
+              <p className="text-sm text-gray-500 mt-0.5">{t('dashboard.subtitle')}</p>
             )}
           </div>
           <CitySearchBar onCitySelect={setSelectedCity} />
@@ -132,6 +135,14 @@ const DashboardPage = () => {
           <TodayHighlights
             data={weatherData}
             isLoading={isInitialLoading || weatherLoading}
+          />
+        </div>
+
+        {/* 5-Day Trend Charts */}
+        <div className="mb-4">
+          <ForecastChartCard
+            data={forecastData}
+            isLoading={isInitialLoading || forecastLoading}
           />
         </div>
 

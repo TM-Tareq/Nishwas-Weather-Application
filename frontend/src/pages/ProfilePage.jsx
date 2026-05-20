@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Briefcase, HeartPulse, ArrowRight, Leaf } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Briefcase, HeartPulse, ArrowRight, Leaf, Camera, Loader2, AlertCircle } from 'lucide-react';
 import useAuthStore from '@/features/auth/store/authStore';
 import useProfileStore from '@/features/profile/store/profileStore';
+import usePhotoUpload from '@/features/profile/hooks/usePhotoUpload';
 import Navbar from '@/components/organisms/Navbar';
 
 const HEALTH_PROFILES = [
@@ -63,7 +64,8 @@ const SelectionCard = ({ item, isSelected, onSelect }) => (
 const ProfilePage = () => {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const { healthProfile, occupation, setHealthProfile, setOccupation } = useProfileStore();
+  const { healthProfile, occupation, photoUrl, setHealthProfile, setOccupation } = useProfileStore();
+  const { uploading, error: uploadError, fileInputRef, openFilePicker, handleFileChange } = usePhotoUpload();
   const [saved, setSaved] = useState(false);
 
   const handleSelect = (setter, value) => {
@@ -92,14 +94,58 @@ const ProfilePage = () => {
 
         {/* User identity card */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center shadow-md shadow-brand-100 shrink-0">
-            <span className="text-2xl font-extrabold text-white">
-              {user?.name?.charAt(0).toUpperCase()}
-            </span>
+          {/* Avatar with upload button */}
+          <div className="relative shrink-0 group">
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt="Profile"
+                className="w-14 h-14 rounded-2xl object-cover shadow-md"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center shadow-md shadow-brand-100">
+                <span className="text-2xl font-extrabold text-white">
+                  {user?.name?.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+            {/* Camera overlay */}
+            <button
+              onClick={openFilePicker}
+              disabled={uploading}
+              className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              title="Change photo"
+            >
+              {uploading
+                ? <Loader2 className="w-5 h-5 text-white animate-spin" />
+                : <Camera className="w-5 h-5 text-white" />
+              }
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
+
           <div className="flex-1 min-w-0">
             <p className="text-lg font-bold text-gray-900 truncate">{user?.name}</p>
             <p className="text-sm text-gray-400 truncate">{user?.email}</p>
+            <button
+              onClick={openFilePicker}
+              disabled={uploading}
+              className="text-xs text-brand-600 hover:text-brand-700 font-medium mt-0.5 transition-colors"
+            >
+              {uploading ? 'Uploading…' : photoUrl ? 'Change photo' : 'Add profile photo'}
+            </button>
+            {uploadError && (
+              <div className="flex items-center gap-1 mt-1">
+                <AlertCircle className="w-3 h-3 text-red-500 shrink-0" />
+                <p className="text-xs text-red-500">{uploadError}</p>
+              </div>
+            )}
           </div>
           <span className="text-xs font-semibold text-brand-600 bg-brand-50 border border-brand-100 px-3 py-1 rounded-full shrink-0">
             Member

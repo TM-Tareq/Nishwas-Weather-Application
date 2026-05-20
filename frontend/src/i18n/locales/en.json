@@ -1,0 +1,94 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "map": "Map",
+    "outdoor": "Outdoor",
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "greeting": "Good day, {{name}}!",
+    "subtitle": "Here's today's weather overview",
+    "locationError": "Could not detect location"
+  },
+  "weather": {
+    "feelsLike": "Feels like",
+    "humidity": "Humidity",
+    "wind": "Wind",
+    "visibility": "Visibility",
+    "pressure": "Pressure",
+    "dewPoint": "Dew Point",
+    "sunrise": "Sunrise",
+    "sunset": "Sunset",
+    "highlights": "Today's Highlights"
+  },
+  "aqi": {
+    "title": "Air Quality",
+    "level": {
+      "1": "Good",
+      "2": "Fair",
+      "3": "Moderate",
+      "4": "Poor",
+      "5": "Very Poor"
+    }
+  },
+  "outdoor": {
+    "title": "Outdoor Safety Check",
+    "detecting": "Detecting location…",
+    "profile": "Health Profile",
+    "breakdown": "Air Quality Breakdown",
+    "tapToLearn": "Tap a row to learn more",
+    "decision": {
+      "yes": "YES",
+      "caution": "YES WITH CAUTION",
+      "avoid": "AVOID / NO",
+      "no": "STRICT NO"
+    },
+    "duration": "Safe Duration",
+    "mask": "Mask Advice",
+    "source": "Data source: OpenWeatherMap · WHO 2021 thresholds"
+  },
+  "profile": {
+    "title": "Profile Settings",
+    "back": "Back",
+    "healthProfile": "Health Profile",
+    "healthDesc": "Personalizes the outdoor recommendation based on your health sensitivity.",
+    "occupation": "Occupation Type",
+    "occupationDesc": "Outdoor workers face higher exposure — adjusts duration and mask advice.",
+    "savedMessage": "Saved automatically",
+    "goOutdoor": "See My Outdoor Recommendation",
+    "goOutdoorSub": "Based on current AQI + your profile"
+  },
+  "forecast": {
+    "title": "5-Day Forecast",
+    "trends": "5-Day Trends",
+    "temperature": "Temperature",
+    "feelsLike": "Feels Like",
+    "rainChance": "Rain Chance",
+    "humidity": "Humidity",
+    "rainHumidity": "Rain & Humidity"
+  },
+  "health": {
+    "title": "Health Advisory",
+    "whatToDo": "What you should do"
+  },
+  "landing": {
+    "badge": "Bangladesh's Air & Weather Platform",
+    "headline1": "Breathe",
+    "headline2": "better.",
+    "headline3": "Live smarter.",
+    "subtitle": "Real-time weather, air quality index, and 5-day forecasts — all in one place.",
+    "cta": "Get started — it's free",
+    "login": "Already have an account? Login →",
+    "features": "Everything you need",
+    "featuresDesc": "Built for Bangladesh's climate and air quality challenges"
+  },
+  "auth": {
+    "login": "Login",
+    "signup": "Sign up free",
+    "dashboard": "Go to Dashboard",
+    "email": "Email address",
+    "password": "Password",
+    "name": "Full name",
+    "tagline": "Breathe better. Live smarter. 🌱"
+  }
+}

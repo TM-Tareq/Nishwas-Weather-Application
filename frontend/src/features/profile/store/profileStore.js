@@ -6,8 +6,10 @@ const useProfileStore = create(
     (set) => ({
       healthProfile: 'general',
       occupation: 'indoor',
+      photoUrl: null,
       setHealthProfile: (v) => set({ healthProfile: v }),
       setOccupation: (v) => set({ occupation: v }),
+      setPhotoUrl: (url) => set({ photoUrl: url }),
     }),
     { name: 'nishwas-profile' }
   )
