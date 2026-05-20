@@ -6,6 +6,7 @@ import DashboardPage from '@/pages/DashboardPage';
 import MapPage from '@/pages/MapPage';
 import OutdoorPage from '@/pages/OutdoorPage';
 import ProfilePage from '@/pages/ProfilePage';
+import LeaderboardPage from '@/pages/LeaderboardPage';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 
 const App = () => {
@@ -47,6 +48,14 @@ const App = () => {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute>
+              <LeaderboardPage />
             </ProtectedRoute>
           }
         />

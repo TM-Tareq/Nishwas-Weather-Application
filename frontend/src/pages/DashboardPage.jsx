@@ -16,6 +16,9 @@ import ForecastChartCard from '@/features/weather/components/ForecastChartCard';
 import HealthTipsCard from '@/features/weather/components/HealthTipsCard';
 import TodayHighlights from '@/features/weather/components/TodayHighlights';
 import CitySearchBar from '@/features/weather/components/CitySearchBar';
+import StatsCard from '@/features/gamification/components/StatsCard';
+import useUserStats from '@/features/gamification/hooks/useUserStats';
+import useCheckIn from '@/features/gamification/hooks/useCheckIn';
 import Navbar from '@/components/organisms/Navbar';
 
 // ─── Outdoor Status Teaser ────────────────────────────────────────────────────
@@ -73,6 +76,8 @@ const DashboardPage = () => {
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const [selectedCity, setSelectedCity] = useState(null);
+  const { data: statsData, isLoading: statsLoading } = useUserStats();
+  useCheckIn(); // auto check-in on first daily visit
 
   const { location: geoLocation, isLoading: locationLoading, error: locationError } = useGeolocation();
   const activeLocation = selectedCity || geoLocation;
@@ -153,6 +158,11 @@ const DashboardPage = () => {
             isLoading={isInitialLoading || aqiLoading}
             error={aqiError}
           />
+        </div>
+
+        {/* Activity Stats */}
+        <div className="mb-4">
+          <StatsCard data={statsData} isLoading={statsLoading} />
         </div>
 
         {/* 5-Day Forecast */}

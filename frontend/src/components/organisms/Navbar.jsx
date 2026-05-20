@@ -1,13 +1,14 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Map, LogOut, Leaf } from 'lucide-react';
+import { LayoutDashboard, Map, LogOut, Leaf, Trophy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '@/features/auth/store/authStore';
 import useProfileStore from '@/features/profile/store/profileStore';
 
 const NAV_LINKS = [
-  { labelKey: 'nav.dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { labelKey: 'nav.map',       path: '/map',       icon: Map },
-  { labelKey: 'nav.outdoor',   path: '/outdoor',   icon: Leaf },
+  { labelKey: 'nav.dashboard',   path: '/dashboard',   icon: LayoutDashboard },
+  { labelKey: 'nav.map',         path: '/map',         icon: Map },
+  { labelKey: 'nav.outdoor',     path: '/outdoor',     icon: Leaf },
+  { labelKey: 'nav.leaderboard', path: '/leaderboard', icon: Trophy },
 ];
 
 const Navbar = () => {
@@ -32,7 +33,7 @@ const Navbar = () => {
       <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
 
         {/* Logo + Nav Links */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-brand-400 to-brand-700 rounded-2xl flex items-center justify-center shadow-md shadow-brand-200">
               <span className="text-xl">🌿</span>
@@ -43,21 +44,21 @@ const Navbar = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {NAV_LINKS.map(({ labelKey, path, icon: Icon }) => {
               const isActive = pathname === path;
               return (
                 <button
                   key={path}
                   onClick={() => navigate(path)}
-                  className={`relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isActive
                       ? 'bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-md shadow-brand-200'
                       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  {t(labelKey)}
+                  <span className="hidden sm:inline">{t(labelKey)}</span>
                 </button>
               );
             })}
@@ -74,6 +75,7 @@ const Navbar = () => {
           >
             {i18n.language === 'en' ? 'বাং' : 'EN'}
           </button>
+
           {/* Username → Profile Settings */}
           <button
             onClick={() => navigate('/profile')}
