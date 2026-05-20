@@ -1,10 +1,11 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Map, LogOut } from 'lucide-react';
+import { LayoutDashboard, Map, LogOut, Leaf } from 'lucide-react';
 import useAuthStore from '@/features/auth/store/authStore';
 
 const navLinks = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Map', path: '/map', icon: Map },
+  { label: 'Map',       path: '/map',       icon: Map },
+  { label: 'Outdoor',   path: '/outdoor',   icon: Leaf },
 ];
 
 const Navbar = () => {
@@ -22,7 +23,7 @@ const Navbar = () => {
     <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200/70 sticky top-0 z-40 shadow-sm">
       <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
 
-        {/* Logo */}
+        {/* Logo + Nav Links */}
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-brand-400 to-brand-700 rounded-2xl flex items-center justify-center shadow-md shadow-brand-200">
@@ -34,7 +35,6 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* Nav Links */}
           <div className="flex items-center gap-1">
             {navLinks.map(({ label, path, icon: Icon }) => {
               const isActive = pathname === path;
@@ -58,14 +58,20 @@ const Navbar = () => {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5">
+          {/* Username → Profile Settings */}
+          <button
+            onClick={() => navigate('/profile')}
+            title="Profile Settings"
+            className="flex items-center gap-2 bg-gray-50 hover:bg-brand-50 border border-gray-200 hover:border-brand-200 rounded-xl px-3 py-1.5 transition-all duration-150"
+          >
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-white">
                 {user?.name?.charAt(0).toUpperCase()}
               </span>
             </div>
             <span className="text-sm font-medium text-gray-700 hidden sm:block">{user?.name}</span>
-          </div>
+          </button>
+
           <button
             onClick={handleLogout}
             title="Logout"

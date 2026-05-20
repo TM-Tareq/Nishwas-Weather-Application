@@ -1,8 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
 import DashboardPage from '@/pages/DashboardPage';
 import MapPage from '@/pages/MapPage';
+import OutdoorPage from '@/pages/OutdoorPage';
+import ProfilePage from '@/pages/ProfilePage';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 
 const App = () => {
@@ -10,6 +13,7 @@ const App = () => {
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
 
@@ -22,6 +26,14 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+          <Route
+            path="/outdoor"
+            element={
+              <ProtectedRoute>
+                <OutdoorPage />
+              </ProtectedRoute>
+            }
+          />
         <Route
           path="/map"
           element={
@@ -30,10 +42,16 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

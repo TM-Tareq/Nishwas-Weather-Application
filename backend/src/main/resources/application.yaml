@@ -4,36 +4,36 @@ spring:
 
   # MySQL Database Configuration
   datasource:
-    url: jdbc:mysql://localhost:3306/nishwas?useSSL=false&serverTimezone=Asia/Dhaka&useUnicode=true&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
-    username: root
-    password: 1234509876
+    url: ${DB_URL:jdbc:mysql://localhost:3306/nishwas?useSSL=false&serverTimezone=Asia/Dhaka&useUnicode=true&characterEncoding=UTF-8&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:1234509876}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # JPA / Hibernate Configuration
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     open-in-view: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         '[jdbc.time_zone]': Asia/Dhaka
 
-# Server Configuration
+# Server Configuration — Railway injects PORT automatically
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     context-path: /api
 
 # Logging Configuration
 logging:
   level:
-    com.nishwas.backend: DEBUG
-    org.springframework.web: INFO
-    org.hibernate.SQL: DEBUG
+    com.nishwas.backend: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
 
 # JWT Configuration
 jwt:
-  secret: 8f3a9b2c5d7e1f4a6b8c3d5e2f7a9b1c4d6e3f5a8b7c2d9e1f4a6b3c5d8e2f7a9
-  expiration: 86400000
+  secret: ${JWT_SECRET:8f3a9b2c5d7e1f4a6b8c3d5e2f7a9b1c4d6e3f5a8b7c2d9e1f4a6b3c5d8e2f7a9}
+  expiration: ${JWT_EXPIRATION:86400000}
