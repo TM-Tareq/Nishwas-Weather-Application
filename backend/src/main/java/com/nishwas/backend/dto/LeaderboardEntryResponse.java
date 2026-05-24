@@ -7,5 +7,6 @@ public record LeaderboardEntryResponse(
         String name,
         int totalPoints,
         int currentStreak,
-        List<String> badges
+        List<String> badges,
+        boolean isMe
 ) {}

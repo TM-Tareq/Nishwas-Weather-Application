@@ -1,5 +1,6 @@
 package com.nishwas.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -16,6 +17,7 @@ public class User {
     private String email;
     @Column(nullable = false, length = 100)
     private String name;
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
     @Column(name = "created_at", nullable = false, updatable = false)

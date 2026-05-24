@@ -4,20 +4,30 @@ import com.nishwas.backend.dto.AuthResponse;
 import com.nishwas.backend.dto.LoginRequest;
 import com.nishwas.backend.dto.RegisterRequest;
 import com.nishwas.backend.entity.User;
+import com.nishwas.backend.repository.CommunityEventRepository;
+import com.nishwas.backend.repository.CommunityPostRepository;
+import com.nishwas.backend.repository.HealthEntryRepository;
 import com.nishwas.backend.repository.UserRepository;
+import com.nishwas.backend.repository.UserStatsRepository;
 import com.nishwas.backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final CommunityPostRepository communityPostRepository;
+    private final CommunityEventRepository communityEventRepository;
+    private final HealthEntryRepository healthEntryRepository;
+    private final UserStatsRepository userStatsRepository;
 
     public AuthResponse register(RegisterRequest request) {
         if(userRepository.existsByEmail(request.email())) {
@@ -41,6 +51,16 @@ public class AuthService {
                 savedUser.getEmail(),
                 savedUser.getName()
         );
+    }
+
+    public void deleteAccount(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        communityPostRepository.deleteByUserEmail(email);
+        communityEventRepository.deleteByOrganizerEmail(email);
+        healthEntryRepository.deleteByUser_Email(email);
+        userStatsRepository.deleteByUserEmail(email);
+        userRepository.delete(user);
     }
 
     public AuthResponse login(LoginRequest request) {

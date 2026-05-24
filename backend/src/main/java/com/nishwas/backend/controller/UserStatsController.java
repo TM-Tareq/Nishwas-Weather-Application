@@ -35,7 +35,7 @@ public class UserStatsController {
 
     // GET /api/stats/leaderboard — top 10 users by points
     @GetMapping("/leaderboard")
-    public ResponseEntity<List<LeaderboardEntryResponse>> getLeaderboard() {
-        return ResponseEntity.ok(statsService.getLeaderboard());
+    public ResponseEntity<List<LeaderboardEntryResponse>> getLeaderboard(Authentication auth) {
+        return ResponseEntity.ok(statsService.getLeaderboard(auth.getName()));
     }
 }

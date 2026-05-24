@@ -9,6 +9,7 @@ import com.nishwas.backend.repository.UserRepository;
 import com.nishwas.backend.repository.UserStatsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -20,13 +21,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class UserStatsService {
 
     private final UserStatsRepository statsRepo;
     private final UserRepository userRepo;
+    private final WebSocketBroadcastService wsBroadcast;
 
-    // ── Check-in ─────────────────────────────────────────────────────────────
+    //  Check-in 
 
     public CheckInResponse checkIn(String email) {
         User user = userRepo.findByEmail(email)
@@ -83,16 +86,21 @@ public class UserStatsService {
         stats.setBadges(String.join(",", currentBadges));
         statsRepo.save(stats);
 
-        return new CheckInResponse(
+        CheckInResponse response = new CheckInResponse(
                 false, pointsEarned,
                 stats.getTotalPoints(),
                 newStreak,
                 newBadges,
                 new ArrayList<>(currentBadges)
         );
+
+        // Async WebSocket broadcast — notifies leaderboard subscribers to refetch
+        wsBroadcast.broadcastLeaderboardRefresh();
+
+        return response;
     }
 
-    // ── My Stats ─────────────────────────────────────────────────────────────
+    //  My Stats 
 
     public StatsResponse getMyStats(String email) {
         return statsRepo.findByUserEmail(email)
@@ -108,12 +116,11 @@ public class UserStatsService {
                 .orElse(new StatsResponse("", 0, 0, 0, 0, List.of(), false));
     }
 
-    // ── Leaderboard ───────────────────────────────────────────────────────────
+    //  Leaderboard 
 
-    public List<LeaderboardEntryResponse> getLeaderboard() {
+    public List<LeaderboardEntryResponse> getLeaderboard(String currentUserEmail) {
         List<UserStats> top = statsRepo.findTop10ByOrderByTotalPointsDesc()
                 .stream()
-                .filter(s -> s.getTotalPoints() > 0)
                 .collect(Collectors.toList());
 
         AtomicInteger rank = new AtomicInteger(1);
@@ -123,12 +130,13 @@ public class UserStatsService {
                         s.getUser().getName(),
                         s.getTotalPoints(),
                         s.getCurrentStreak(),
-                        parseBadges(s.getBadges())
+                        parseBadges(s.getBadges()),
+                        s.getUser().getEmail().equals(currentUserEmail)
                 ))
                 .collect(Collectors.toList());
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    //  Helpers 
 
     private UserStats createStats(User user) {
         UserStats stats = new UserStats();

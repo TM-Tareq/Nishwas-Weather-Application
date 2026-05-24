@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface UserStatsRepository extends JpaRepository<UserStats, Long> {
     Optional<UserStats> findByUserEmail(String email);
     List<UserStats> findTop10ByOrderByTotalPointsDesc();
+    void deleteByUserEmail(String email);
 }
