@@ -97,8 +97,7 @@ const AuthPage = () => {
   const [error, setError]       = useState('');
 
   const navigate    = useNavigate();
-  const setUser     = useAuthStore((s) => s.setUser);
-  const setToken    = useAuthStore((s) => s.setToken);
+  const login       = useAuthStore((s) => s.login);
   const currentUser = useAuthStore((s) => s.user);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
@@ -115,14 +114,17 @@ const AuthPage = () => {
         : await registerUser({ name: data.name, email: data.email, password: data.password });
 
       if (res.token) {
-        setToken(res.token);
-        setUser(res.user ?? { name: data.name ?? data.email, email: data.email });
+        login(res.token, { id: res.id, name: res.name ?? data.name ?? data.email, email: res.email ?? data.email });
         navigate('/dashboard');
       } else {
         setError('Unexpected response. Please try again.');
       }
     } catch (err) {
-      setError(err?.response?.data?.message ?? (isLogin ? 'Invalid credentials.' : 'Registration failed.'));
+      if (!err.response) {
+        setError('Cannot connect to server. Is the backend running?');
+      } else {
+        setError(err.response.data?.message ?? (isLogin ? 'Invalid credentials.' : 'Registration failed.'));
+      }
     } finally {
       setLoading(false);
     }
@@ -147,7 +149,7 @@ const AuthPage = () => {
                 className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
                   (i === 0) === isLogin
                     ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                    : 'text-white/40 hover:text-white/70'
+                    : 'text-white/65 hover:text-white'
                 }`}
               >
                 {label}
