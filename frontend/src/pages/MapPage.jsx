@@ -1,15 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
-import { Thermometer, Droplets, Wind, CloudRain, Gauge, Eye, Zap, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Thermometer, Droplets, Wind, CloudRain, Gauge, Eye, Zap, Loader2, Activity } from 'lucide-react';
 import Navbar, { BottomNav } from '@/components/organisms/Navbar';
 import useGeolocation from '@/hooks/useGeolocation';
 
 const LAYERS = [
   { key: 'wind',      label: 'Wind',        icon: Wind,        color: 'from-teal-500 to-cyan-500'    },
   { key: 'temp',      label: 'Temperature', icon: Thermometer, color: 'from-orange-500 to-red-500'   },
+  { key: 'rh',        label: 'Humidity',    icon: Droplets,    color: 'from-sky-400 to-blue-500'     },
+  { key: 'pm2p5',     label: 'AQI / PM2.5', icon: Activity,   color: 'from-emerald-500 to-teal-600' },
   { key: 'rain',      label: 'Rain',        icon: CloudRain,   color: 'from-blue-500 to-indigo-500'  },
   { key: 'clouds',    label: 'Clouds',      icon: Eye,         color: 'from-slate-400 to-slate-600'  },
   { key: 'pressure',  label: 'Pressure',    icon: Gauge,       color: 'from-violet-500 to-purple-600'},
-  { key: 'humidity',  label: 'Humidity',    icon: Droplets,    color: 'from-sky-400 to-blue-500'     },
   { key: 'thunder',   label: 'Thunder',     icon: Zap,         color: 'from-yellow-400 to-amber-500' },
 ];
 
@@ -32,11 +34,13 @@ const buildWindyUrl = (lat, lon, layer) =>
   `&metricTemp=%C2%B0C`;
 
 const MapPage = () => {
+  const [searchParams] = useSearchParams();
   const { location, isLoading: locLoading } = useGeolocation();
   const lat = location?.lat ?? 23.7;
   const lon = location?.lon ?? 90.35;
 
-  const [activeLayer, setActiveLayer] = useState(LAYERS[0]);
+  const initialLayer = LAYERS.find(l => l.key === searchParams.get('layer')) ?? LAYERS[0];
+  const [activeLayer, setActiveLayer] = useState(initialLayer);
   const [iframeReady, setIframeReady] = useState(false);
   const iframeRef = useRef(null);
 

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import {
   ArrowRight, Share2, Navigation2,
   Users, TrendingUp, Wind, Droplets, Thermometer,
-  Activity, AlertTriangle, CheckCircle2, XCircle, ShieldAlert, X,
+  Activity, AlertTriangle, CheckCircle2, XCircle, ShieldAlert,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -28,7 +28,6 @@ import OnboardingModal from '@/components/organisms/OnboardingModal';
 import NotificationPermissionBanner from '@/components/organisms/NotificationPermissionBanner';
 import ShareCardModal  from '@/components/organisms/ShareCardModal';
 import useAqiNotification from '@/hooks/useAqiNotification';
-import FluidWeatherMatrix from '@/components/organisms/FluidWeatherMatrix';
 
 //  Aero-Score computation 
 // Higher = safer air. 0–100 composite score.
@@ -106,193 +105,7 @@ const AQI_META = {
   5: { label: 'Very Poor', gradient: 'from-purple-500 to-purple-800',   text: 'text-purple-400'  },
 };
 
-//  Environmental Parameter Detail Sheet
-const ParamDetailSheet = ({ paramKey, humidity, windSpd, temp, feelsLike, aqi, pm25, onClose, t }) => {
-  if (!paramKey) return null;
-
-  const configs = {
-    humidity: {
-      Icon: Droplets,
-      color: 'text-blue-400',
-      from: '#3b82f6', to: '#06b6d4',
-      label: t('weather.humidity'),
-      value: `${humidity}%`,
-      pct: Math.min(humidity, 100),
-      ranges: [
-        { label: '< 30  Dry',          color: '#f59e0b' },
-        { label: '30–60  Comfortable', color: '#10b981' },
-        { label: '60–80  Humid',       color: '#f97316' },
-        { label: '80+  Very Humid',    color: '#ef4444' },
-      ],
-      status: humidity < 30
-        ? { text: 'Dry air — may irritate airways',           color: 'text-amber-400',   bg: 'bg-amber-500/10'   }
-        : humidity < 60
-        ? { text: 'Comfortable humidity range',               color: 'text-emerald-400', bg: 'bg-emerald-500/10' }
-        : humidity < 80
-        ? { text: 'Moderately humid — carry water',           color: 'text-orange-400',  bg: 'bg-orange-500/10'  }
-        : { text: 'High humidity — allergen risk elevated',   color: 'text-red-400',     bg: 'bg-red-500/10'     },
-      desc: 'Relative humidity is the water vapour in the air relative to its maximum capacity. High humidity traps pollutants near the ground and amplifies heat stress.',
-    },
-    wind: {
-      Icon: Wind,
-      color: (windSpd * 3.6) > 10 ? 'text-emerald-400' : 'text-amber-400',
-      from: '#10b981', to: '#06b6d4',
-      label: t('weather.wind'),
-      value: `${(windSpd * 3.6).toFixed(1)} km/h`,
-      pct: Math.min((windSpd * 3.6) / 60 * 100, 100),
-      ranges: [
-        { label: '0–10  Calm/Stagnant',   color: '#ef4444' },
-        { label: '10–20  Light Breeze',   color: '#f59e0b' },
-        { label: '20–40  Good Airflow',   color: '#10b981' },
-        { label: '40+  Strong Wind',      color: '#3b82f6' },
-      ],
-      status: (windSpd * 3.6) < 10
-        ? { text: 'Calm air — pollutants may accumulate',     color: 'text-red-400',     bg: 'bg-red-500/10'     }
-        : (windSpd * 3.6) < 20
-        ? { text: 'Light breeze — moderate dispersal',        color: 'text-amber-400',   bg: 'bg-amber-500/10'   }
-        : { text: 'Good wind — pollutants dispersing well',   color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-      desc: 'Wind speed determines how well airborne pollutants disperse. Low wind means stagnant air where PM2.5 and NO₂ can accumulate near the surface.',
-    },
-    feelsLike: {
-      Icon: Thermometer,
-      color: feelsLike > 35 ? 'text-red-400' : feelsLike > 28 ? 'text-orange-400' : 'text-emerald-400',
-      from: feelsLike > 35 ? '#ef4444' : '#f97316', to: '#f59e0b',
-      label: t('weather.feelsLike'),
-      value: `${Math.round(feelsLike)}°C`,
-      pct: Math.min(Math.max((feelsLike - 10) / 40 * 100, 0), 100),
-      ranges: [
-        { label: '< 18  Cool',       color: '#3b82f6' },
-        { label: '18–27  Ideal',     color: '#10b981' },
-        { label: '27–33  Warm',      color: '#f59e0b' },
-        { label: '33+  Hot',         color: '#ef4444' },
-      ],
-      status: feelsLike < 18
-        ? { text: 'Cool — dress in layers',              color: 'text-blue-400',    bg: 'bg-blue-500/10'    }
-        : feelsLike < 27
-        ? { text: 'Comfortable apparent temperature',    color: 'text-emerald-400', bg: 'bg-emerald-500/10' }
-        : feelsLike < 33
-        ? { text: 'Warm — stay hydrated outdoors',       color: 'text-amber-400',   bg: 'bg-amber-500/10'   }
-        : { text: 'Hot — limit prolonged outdoor time',  color: 'text-red-400',     bg: 'bg-red-500/10'     },
-      desc: `Actual temperature: ${Math.round(temp)}°C. Apparent temperature accounts for humidity and wind chill. High humidity makes heat feel more intense; wind provides cooling.`,
-    },
-    aqi: {
-      Icon: Activity,
-      color: ['', 'text-emerald-400', 'text-yellow-400', 'text-orange-400', 'text-red-400', 'text-purple-400'][aqi] ?? 'text-white',
-      from: ['', '#10b981', '#eab308', '#f97316', '#ef4444', '#a855f7'][aqi] ?? '#10b981',
-      to:   ['', '#06b6d4', '#f59e0b', '#ea580c', '#dc2626', '#7c3aed'][aqi] ?? '#06b6d4',
-      label: t('dashboard.aqiLevel'),
-      value: `${t(`aqi.level.${aqi}`)}  (${aqi}/5)`,
-      pct: ((aqi - 1) / 4) * 100,
-      ranges: [
-        { label: '1  Good',      color: '#10b981' },
-        { label: '2  Fair',      color: '#eab308' },
-        { label: '3  Moderate',  color: '#f97316' },
-        { label: '4  Poor',      color: '#ef4444' },
-        { label: '5  Very Poor', color: '#a855f7' },
-      ],
-      status: !aqi ? { text: 'No data', color: 'text-white/40', bg: 'bg-white/5' }
-        : aqi <= 1 ? { text: 'Good — enjoy outdoor activities',               color: 'text-emerald-400', bg: 'bg-emerald-500/10' }
-        : aqi === 2 ? { text: 'Fair — sensitive groups should take care',     color: 'text-yellow-400',  bg: 'bg-yellow-500/10'  }
-        : aqi === 3 ? { text: 'Moderate — reduce prolonged outdoor activity', color: 'text-orange-400',  bg: 'bg-orange-500/10'  }
-        : aqi === 4 ? { text: 'Poor — limit outdoor exposure',                color: 'text-red-400',     bg: 'bg-red-500/10'     }
-        :             { text: 'Very Poor — stay indoors',                     color: 'text-purple-400',  bg: 'bg-purple-500/10'  },
-      desc: 'AQI (1–5) is a composite of PM2.5, PM10, NO₂, O₃, SO₂ and CO concentrations per WHO 2021 guidelines. Values above 3 indicate a measurable risk to respiratory health.',
-      extra: pm25 != null ? `PM2.5: ${pm25.toFixed(1)} μg/m³  ·  WHO 24h safe limit: 15 μg/m³` : null,
-    },
-    pm25: {
-      Icon: Wind,
-      color: pm25 > 75 ? 'text-purple-400' : pm25 > 35 ? 'text-red-400' : pm25 > 15 ? 'text-orange-400' : 'text-emerald-400',
-      from: pm25 > 75 ? '#a855f7' : pm25 > 35 ? '#ef4444' : pm25 > 15 ? '#f97316' : '#10b981',
-      to:   pm25 > 75 ? '#7c3aed' : pm25 > 35 ? '#dc2626' : '#f59e0b',
-      label: 'PM2.5',
-      value: `${pm25?.toFixed(1) ?? '—'} μg/m³`,
-      pct: pm25 != null ? Math.min(pm25 / 75 * 100, 100) : 0,
-      ranges: [
-        { label: '0–15  WHO Safe',    color: '#10b981' },
-        { label: '15–35  Moderate',   color: '#f59e0b' },
-        { label: '35–75  Unhealthy',  color: '#ef4444' },
-        { label: '75+  Hazardous',    color: '#a855f7' },
-      ],
-      status: pm25 == null
-        ? { text: 'No data available',                           color: 'text-white/40',  bg: 'bg-white/5'        }
-        : pm25 <= 15
-        ? { text: 'Within WHO safe limits (≤15 μg/m³)',          color: 'text-emerald-400', bg: 'bg-emerald-500/10' }
-        : pm25 <= 35
-        ? { text: 'Moderate — sensitive groups at risk',          color: 'text-amber-400',   bg: 'bg-amber-500/10'   }
-        : pm25 <= 75
-        ? { text: 'Unhealthy — limit outdoor exposure',           color: 'text-red-400',     bg: 'bg-red-500/10'     }
-        : { text: 'Hazardous — stay indoors immediately',         color: 'text-purple-400',  bg: 'bg-purple-500/10'  },
-      desc: 'PM2.5 are fine particles ≤2.5 μm in diameter. They penetrate deep into the lungs and enter the bloodstream, increasing risk of heart disease and stroke.',
-    },
-  };
-
-  const cfg = configs[paramKey];
-  if (!cfg) return null;
-  const { Icon, color, from, to, label, value, pct, ranges, status, desc, extra } = cfg;
-
-  return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-50 animate-slide-up">
-        <div
-          className="rounded-t-3xl p-6 pb-10 max-h-[78vh] overflow-y-auto scrollbar-hide"
-          style={{ background: 'linear-gradient(160deg, #0c1828 0%, #090D16 100%)', borderTop: '1px solid rgba(255,255,255,0.1)' }}
-        >
-          {/* Drag handle */}
-          <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
-
-          {/* Header */}
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: `${from}22` }}>
-                <Icon className={`w-7 h-7 ${color}`} />
-              </div>
-              <div>
-                <p className="text-xs text-white/40 uppercase tracking-widest mb-0.5">{label}</p>
-                <p className={`text-3xl font-extrabold leading-none ${color}`}>{value}</p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-9 h-9 rounded-full bg-white/8 flex items-center justify-center text-white/40 hover:bg-white/15 hover:text-white/70 transition-all flex-shrink-0"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Progress bar */}
-          <div className="mb-5">
-            <div className="h-2.5 w-full rounded-full bg-white/8 overflow-hidden mb-3">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${from}, ${to})` }}
-              />
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {ranges.map(r => (
-                <span key={r.label} className="text-[10px] font-medium" style={{ color: r.color }}>{r.label}</span>
-              ))}
-            </div>
-          </div>
-
-          {/* Status badge */}
-          <div className={`${status.bg} border border-white/8 rounded-xl px-4 py-2.5 mb-4`}>
-            <p className={`text-sm font-semibold ${status.color}`}>{status.text}</p>
-          </div>
-
-          {/* Description */}
-          <p className="text-sm text-white/50 leading-relaxed">{desc}</p>
-
-          {extra && (
-            <p className="text-xs text-white/30 bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 mt-3">{extra}</p>
-          )}
-        </div>
-      </div>
-    </>
-  );
-};
-
-//  Quick nav chip 
+//  Quick nav chip
 const NavChip = ({ label, path, icon: Icon, color, navigate }) => (
   <button
     onClick={() => navigate(path)}
@@ -346,9 +159,8 @@ const DashboardPage = () => {
   const { t }      = useTranslation();
   const navigate   = useNavigate();
   const user       = useAuthStore((s) => s.user);
-  const [selectedCity, setSelectedCity]     = useState(null);
-  const [showShareCard, setShowShareCard]   = useState(false);
-  const [selectedParam, setSelectedParam]   = useState(null);
+  const [selectedCity, setSelectedCity]   = useState(null);
+  const [showShareCard, setShowShareCard] = useState(false);
   const { data: statsData, isLoading: statsLoading } = useUserStats();
   useCheckIn();
 
@@ -385,8 +197,6 @@ const DashboardPage = () => {
   const windSpd  = weatherData?.wind?.speed ?? 3;
   const temp     = weatherData?.main?.temp ?? 28;
   const feelsLike = weatherData?.main?.feels_like ?? temp;
-  const pm25     = aqiData?.list?.[0]?.components?.pm2_5;
-  const pm10     = aqiData?.list?.[0]?.components?.pm10;
 
   const aeroScore = calcAeroScore(aqi, humidity, windSpd, temp);
   const aeroMeta  = aeroLabel(aeroScore);
@@ -459,35 +269,121 @@ const DashboardPage = () => {
           ].map(p => <NavChip key={p.path} {...p} navigate={navigate} />)}
         </div>
 
-        {/*  City + Aero strip  */}
+        {/*  Current weather strip  */}
         {!isInitialLoading && weatherData && (
           <div className="glass-card flex items-center gap-4 px-4 py-3 mb-4">
-            <img src={`https://openweathermap.org/img/wn/${weatherData.weather[0].icon}@2x.png`} alt="" className="w-12 h-12 flex-shrink-0" />
+            <img
+              src={`https://openweathermap.org/img/wn/${weatherData.weather[0].icon}@2x.png`}
+              alt="" className="w-12 h-12 flex-shrink-0"
+            />
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-white/40 uppercase tracking-widest">{weatherData.name}</p>
-              <p className="text-sm text-white/60 capitalize">{weatherData.weather[0].description}</p>
+              <p className="text-xs text-white/40 uppercase tracking-widest leading-none">{weatherData.name}</p>
+              <p className="text-2xl font-extrabold text-white mt-0.5">{Math.round(temp)}°C</p>
+              <p className="text-xs text-white/40 capitalize">{weatherData.weather[0].description}</p>
             </div>
             <div className="flex flex-col items-center flex-shrink-0">
-              <AeroGauge score={aeroScore} label={t(`dashboard.aeroScore.${aeroMeta.labelKey}`)} color={aeroMeta.color} ring={aeroMeta.ring} />
+              <AeroGauge
+                score={aeroScore}
+                label={t(`dashboard.aeroScore.${aeroMeta.labelKey}`)}
+                color={aeroMeta.color}
+                ring={aeroMeta.ring}
+              />
               <p className="text-[9px] text-white/25 mt-1 uppercase tracking-widest">{t('dashboard.compositeAirSafety')}</p>
             </div>
           </div>
         )}
 
-        {/*  Fluid Animated Weather Matrix  */}
+        {/*  Parameter cards — click → animated map view with past/live/forecast  */}
         <div className="mb-5">
           {isInitialLoading || (weatherLoading && !weatherData) ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="rounded-2xl animate-pulse" style={{ height: 160, background: 'rgba(15,23,42,0.5)' }} />
+                <div key={i} className="rounded-2xl animate-pulse" style={{ height: 130, background: 'rgba(15,23,42,0.5)' }} />
               ))}
             </div>
           ) : weatherData ? (
-            <FluidWeatherMatrix
-              weatherData={weatherData}
-              aqiData={aqiData}
-              onParamClick={setSelectedParam}
-            />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* AQI */}
+              <button
+                onClick={() => navigate('/map?layer=pm2p5')}
+                className="glass-card p-4 text-left group hover:border-white/20 transition-all duration-200 active:scale-[0.97]"
+                style={{ borderColor: aqi >= 4 ? '#ef444430' : aqi >= 3 ? '#f9731630' : '#10b98130' }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${aqiMeta.text.replace('text-', '#').replace('-400','') ?? '#10b981'}18` }}>
+                    <Activity className={`w-4 h-4 ${aqiMeta.text}`} />
+                  </div>
+                  <span className="text-[9px] text-white/20 group-hover:text-emerald-400 transition-all font-semibold">Map →</span>
+                </div>
+                <p className="text-[10px] text-white/35 uppercase tracking-widest mb-1">{t('dashboard.aqiLevel')}</p>
+                <p className={`text-3xl font-extrabold leading-none ${aqiMeta.text}`}>{aqi ?? '—'}</p>
+                <p className="text-xs text-white/40 mt-1">{aqi ? t(`aqi.level.${aqi}`) : '—'}</p>
+              </button>
+
+              {/* Humidity */}
+              <button
+                onClick={() => navigate('/map?layer=rh')}
+                className="glass-card p-4 text-left group hover:border-white/20 transition-all duration-200 active:scale-[0.97]"
+                style={{ borderColor: humidity > 80 ? '#3b82f630' : '#ffffff12' }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-8 h-8 rounded-xl bg-sky-500/10 flex items-center justify-center">
+                    <Droplets className="w-4 h-4 text-sky-400" />
+                  </div>
+                  <span className="text-[9px] text-white/20 group-hover:text-emerald-400 transition-all font-semibold">Map →</span>
+                </div>
+                <p className="text-[10px] text-white/35 uppercase tracking-widest mb-1">{t('weather.humidity')}</p>
+                <div className="flex items-end gap-0.5">
+                  <p className="text-3xl font-extrabold leading-none text-sky-400">{humidity}</p>
+                  <p className="text-base font-bold text-sky-400/50 mb-0.5">%</p>
+                </div>
+                <p className="text-xs text-white/40 mt-1">{humidity > 80 ? 'Very Humid' : humidity > 60 ? 'Humid' : humidity > 40 ? 'Comfortable' : 'Dry'}</p>
+              </button>
+
+              {/* Wind */}
+              <button
+                onClick={() => navigate('/map?layer=wind')}
+                className="glass-card p-4 text-left group hover:border-white/20 transition-all duration-200 active:scale-[0.97]"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                    <Wind className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <span className="text-[9px] text-white/20 group-hover:text-emerald-400 transition-all font-semibold">Map →</span>
+                </div>
+                <p className="text-[10px] text-white/35 uppercase tracking-widest mb-1">{t('weather.wind')}</p>
+                <div className="flex items-end gap-0.5">
+                  <p className="text-3xl font-extrabold leading-none text-emerald-400">{(windSpd * 3.6).toFixed(1)}</p>
+                  <p className="text-xs font-bold text-emerald-400/50 mb-1">km/h</p>
+                </div>
+                <p className="text-xs text-white/40 mt-1">
+                  {(() => { const d = ['N','NE','E','SE','S','SW','W','NW']; return d[Math.round((weatherData?.wind?.deg ?? 0) / 45) % 8] ?? 'N'; })()}
+                  {' '}· {windSpd < 2 ? 'Calm' : windSpd < 6 ? 'Breeze' : 'Strong'}
+                </p>
+              </button>
+
+              {/* Temperature */}
+              <button
+                onClick={() => navigate('/map?layer=temp')}
+                className="glass-card p-4 text-left group hover:border-white/20 transition-all duration-200 active:scale-[0.97]"
+                style={{ borderColor: temp > 36 ? '#ef444430' : temp > 30 ? '#f9731630' : '#ffffff12' }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                    <Thermometer className={`w-4 h-4 ${temp > 34 ? 'text-red-400' : temp > 28 ? 'text-orange-400' : 'text-yellow-400'}`} />
+                  </div>
+                  <span className="text-[9px] text-white/20 group-hover:text-emerald-400 transition-all font-semibold">Map →</span>
+                </div>
+                <p className="text-[10px] text-white/35 uppercase tracking-widest mb-1">{t('weather.feelsLike')}</p>
+                <div className="flex items-end gap-0.5">
+                  <p className={`text-3xl font-extrabold leading-none ${temp > 34 ? 'text-red-400' : temp > 28 ? 'text-orange-400' : 'text-yellow-400'}`}>
+                    {Math.round(feelsLike)}
+                  </p>
+                  <p className="text-base font-bold text-white/30 mb-0.5">°C</p>
+                </div>
+                <p className="text-xs text-white/40 mt-1">Actual {Math.round(temp)}°C</p>
+              </button>
+            </div>
           ) : (
             <p className="text-white/30 text-sm">{t('dashboard.weatherUnavailable')}</p>
           )}
@@ -530,19 +426,6 @@ const DashboardPage = () => {
 
       </div>
 
-      {selectedParam && (
-        <ParamDetailSheet
-          paramKey={selectedParam}
-          humidity={humidity}
-          windSpd={windSpd}
-          temp={temp}
-          feelsLike={feelsLike}
-          aqi={aqi}
-          pm25={pm25}
-          onClose={() => setSelectedParam(null)}
-          t={t}
-        />
-      )}
     </div>
   );
 };
