@@ -17,11 +17,15 @@ axiosInstance.interceptors.request.use(
 );
 
 axiosInstance.interceptors.response.use(
-    (response)=> response,
+    (response) => response,
     (error) => {
-        if(error.response?.status === 401 || error.response?.status === 403) {
+        if (error.response?.status === 401 || error.response?.status === 403) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            // Redirect to auth page only if not already there
+            if (!window.location.pathname.startsWith('/auth')) {
+                window.location.href = '/auth';
+            }
         }
         return Promise.reject(error);
     }

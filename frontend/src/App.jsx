@@ -1,69 +1,54 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import LandingPage from '@/pages/LandingPage';
-import LoginPage from '@/pages/LoginPage';
-import SignupPage from '@/pages/SignupPage';
-import DashboardPage from '@/pages/DashboardPage';
-import MapPage from '@/pages/MapPage';
-import OutdoorPage from '@/pages/OutdoorPage';
-import ProfilePage from '@/pages/ProfilePage';
-import LeaderboardPage from '@/pages/LeaderboardPage';
+import LandingPage    from '@/pages/LandingPage';
+import AuthPage       from '@/pages/AuthPage';
+import DashboardPage  from '@/pages/DashboardPage';
+import SpatialHubPage from '@/pages/SpatialHubPage';
+import BiometricsPage from '@/pages/BiometricsPage';
+import AnalyticsPage  from '@/pages/AnalyticsPage';
+import NexusPage      from '@/pages/NexusPage';
+import NotFoundPage   from '@/pages/NotFoundPage';
 import ProtectedRoute from '@/routes/ProtectedRoute';
+import useThemeStore  from '@/store/themeStore';
 
-const App = () => {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-
-        {/* Protected routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-          <Route
-            path="/outdoor"
-            element={
-              <ProtectedRoute>
-                <OutdoorPage />
-              </ProtectedRoute>
-            }
-          />
-        <Route
-          path="/map"
-          element={
-            <ProtectedRoute>
-              <MapPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/leaderboard"
-          element={
-            <ProtectedRoute>
-              <LeaderboardPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
-  );
+const ThemeInit = () => {
+  const initTheme = useThemeStore((s) => s.initTheme);
+  useEffect(() => { initTheme(); }, [initTheme]);
+  return null;
 };
+
+const App = () => (
+  <BrowserRouter>
+    <ThemeInit />
+    <Routes>
+      {/* Public */}
+      <Route path="/"       element={<LandingPage />} />
+      <Route path="/auth"   element={<AuthPage />} />
+
+      <Route path="/login"  element={<Navigate to="/auth" replace />} />
+      <Route path="/signup" element={<Navigate to="/auth?mode=signup" replace />} />
+
+      {/* Pages */}
+      <Route path="/dashboard"   element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/spatial-hub" element={<ProtectedRoute><SpatialHubPage /></ProtectedRoute>} />
+      <Route path="/biometrics"  element={<ProtectedRoute><BiometricsPage /></ProtectedRoute>} />
+      <Route path="/analytics"   element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+      <Route path="/nexus"       element={<ProtectedRoute><NexusPage /></ProtectedRoute>} />
+
+      {/* Sub-Pages */}
+      <Route path="/map"        element={<Navigate to="/spatial-hub" replace />} />
+      <Route path="/route"      element={<Navigate to="/spatial-hub?tab=route" replace />} />
+      <Route path="/profile"    element={<Navigate to="/biometrics" replace />} />
+      <Route path="/outdoor"    element={<Navigate to="/biometrics?tab=outdoor" replace />} />
+      <Route path="/diary"      element={<Navigate to="/biometrics?tab=diary" replace />} />
+      <Route path="/insights"   element={<Navigate to="/analytics" replace />} />
+      <Route path="/compare"    element={<Navigate to="/analytics?tab=compare" replace />} />
+      <Route path="/community"  element={<Navigate to="/nexus" replace />} />
+      <Route path="/leaderboard" element={<Navigate to="/nexus?tab=leaderboard" replace />} />
+
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  </BrowserRouter>
+);
 
 export default App;
