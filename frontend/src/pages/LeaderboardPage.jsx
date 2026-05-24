@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchLeaderboard } from '@/features/gamification/api/statsApi';
 import useUserStats from '@/features/gamification/hooks/useUserStats';
 import useAuthStore from '@/features/auth/store/authStore';
-import Navbar from '@/components/organisms/Navbar';
+import Navbar, { BottomNav } from '@/components/organisms/Navbar';
 
 const BADGES = {
   first_breath:  '🌱',
@@ -32,10 +32,11 @@ const LeaderboardPage = () => {
   const { data: myStats } = useUserStats();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen page-enter">
       <Navbar />
+      <BottomNav />
 
-      <div className="max-w-2xl mx-auto px-6 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-6">
 
         {/* Back */}
         <button
@@ -96,7 +97,7 @@ const LeaderboardPage = () => {
           <div className="space-y-2">
             {board.map((entry) => {
               const rankStyle = RANK_STYLES[entry.rank] ?? { bg: 'bg-white border-gray-100', text: 'text-gray-400', trophy: null };
-              const isMe = entry.name === user?.name;
+              const isMe = entry.isMe;
 
               return (
                 <div

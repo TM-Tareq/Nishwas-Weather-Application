@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import {
   MapPin, Clock, ShieldAlert, Wind, Droplets, Thermometer,
-  CheckCircle2, XCircle, AlertTriangle, ChevronDown, Info,
+  CheckCircle2, XCircle, AlertTriangle, ChevronDown, Info, Sun,
 } from 'lucide-react';
 import useProfileStore from '@/features/profile/store/profileStore';
 import useGeolocation from '@/hooks/useGeolocation';
 import useWeather from '@/features/weather/hooks/useWeather';
 import useAirQuality from '@/features/weather/hooks/useAirQuality';
+import useForecast from '@/features/weather/hooks/useForecast';
 import useDecisionEngine from '@/features/suggestion/hooks/useDecisionEngine';
 import CitySearchBar from '@/features/weather/components/CitySearchBar';
-import Navbar from '@/components/organisms/Navbar';
+import Navbar, { BottomNav } from '@/components/organisms/Navbar';
 
-// ─── Config ───────────────────────────────────────────────────────────────────
+//  Config 
 
 const HEALTH_PROFILES = [
   { id: 'general',       icon: '🏃', label: 'General' },
@@ -68,7 +69,7 @@ const PARAMETERS = [
   },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+//  Helpers 
 
 const getParamStatus = (value, t) => {
   if (value <= t.good)     return { label: 'Safe',     color: 'bg-green-500',  text: 'text-green-700',  bg: 'bg-green-50' };
@@ -79,7 +80,7 @@ const getParamStatus = (value, t) => {
 
 const fmt = (v) => (v < 10 ? v.toFixed(2) : v < 1000 ? v.toFixed(1) : Math.round(v).toLocaleString());
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+//  Sub-components 
 
 const ParameterRow = ({ param, value, isLast }) => {
   const [open, setOpen] = useState(false);
@@ -167,7 +168,88 @@ const ParameterRow = ({ param, value, isLast }) => {
   );
 };
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+//  Best Hours Card 
+
+const scoreSlot = (temp, pop, aqi) => {
+  // Temperature: ideal 18–28°C for Bangladesh outdoors
+  const tempScore = temp >= 18 && temp <= 28 ? 2 : temp >= 15 && temp <= 32 ? 1 : 0;
+  // Rain: lower = better
+  const rainScore = pop <= 0.1 ? 2 : pop <= 0.3 ? 1 : 0;
+  // AQI: good/fair = ok, rest = bad
+  const aqiScore = aqi <= 2 ? 2 : aqi === 3 ? 1 : 0;
+  return tempScore + rainScore + aqiScore;
+};
+
+const SLOT_LABEL = {
+  6: 'score-best',
+  5: 'score-good',
+  4: 'score-ok',
+};
+
+const slotStyle = (score) => {
+  if (score >= 6) return { ring: 'ring-2 ring-green-400', bg: 'bg-green-50',  label: '✅ Best',    text: 'text-green-700' };
+  if (score >= 4) return { ring: '',                       bg: 'bg-white',     label: '👍 Good',    text: 'text-blue-600'  };
+  if (score >= 2) return { ring: '',                       bg: 'bg-white',     label: '⚠️ Fair',    text: 'text-yellow-600' };
+  return               { ring: '',                         bg: 'bg-gray-50',   label: '❌ Avoid',   text: 'text-red-500'   };
+};
+
+const fmt12h = (dtTxt) => {
+  const date = new Date(dtTxt.replace(' ', 'T'));
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+};
+
+const BestHoursCard = ({ forecastData, aqi }) => {
+  if (!forecastData?.list?.length) return null;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const slots = forecastData.list
+    .filter((item) => item.dt_txt.startsWith(todayStr))
+    .map((item) => ({
+      time: item.dt_txt,
+      temp: Math.round(item.main.temp),
+      pop: item.pop ?? 0,
+      icon: item.weather?.[0]?.icon,
+      score: scoreSlot(item.main.temp, item.pop ?? 0, aqi),
+    }));
+
+  if (!slots.length) return null;
+
+  return (
+    <div className="mb-5">
+      <div className="flex items-center gap-2 mb-3">
+        <Sun className="w-4 h-4 text-amber-500" />
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Best Hours Today</p>
+      </div>
+      <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
+        {slots.map((slot) => {
+          const style = slotStyle(slot.score);
+          return (
+            <div
+              key={slot.time}
+              className={`shrink-0 flex flex-col items-center gap-1.5 rounded-2xl border border-gray-100 shadow-sm px-4 py-3 min-w-[88px] ${style.bg} ${style.ring}`}
+            >
+              <p className="text-xs font-bold text-gray-500">{fmt12h(slot.time)}</p>
+              {slot.icon && (
+                <img
+                  src={`https://openweathermap.org/img/wn/${slot.icon}.png`}
+                  alt=""
+                  className="w-9 h-9 -my-1"
+                />
+              )}
+              <p className="text-sm font-extrabold text-gray-900">{slot.temp}°C</p>
+              <p className="text-[10px] text-blue-400 font-medium">
+                {Math.round(slot.pop * 100)}% rain
+              </p>
+              <p className={`text-[10px] font-bold ${style.text}`}>{style.label}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+//  Main Page 
 
 const OutdoorPage = () => {
   const { healthProfile: savedProfile, occupation } = useProfileStore();
@@ -181,6 +263,7 @@ const OutdoorPage = () => {
 
   const { data: weatherData, isLoading: weatherLoading } = useWeather(activeLocation);
   const { data: aqiData, isLoading: aqiLoading, error: aqiError } = useAirQuality(activeLocation);
+  const { data: forecastData } = useForecast(activeLocation);
 
   const isLoading = (locationLoading && !selectedCity) || aqiLoading || weatherLoading;
 
@@ -199,12 +282,13 @@ const OutdoorPage = () => {
     XCircle;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen page-enter">
       <Navbar />
+      <BottomNav />
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-5xl mx-auto px-4 py-6">
 
-        {/* ── Location + Search ───────────────────────────────────── */}
+        {/*  Location + Search  */}
         <div className="flex items-center justify-between gap-3 mb-5">
           <div className="flex items-center gap-1.5">
             <MapPin className="w-4 h-4 text-brand-500 shrink-0" />
@@ -216,7 +300,7 @@ const OutdoorPage = () => {
         </div>
 
         {isLoading ? (
-          /* ── Skeleton ────────────────────────────────────────────── */
+          /*  Skeleton  */
           <div className="space-y-4 animate-pulse">
             <div className="h-44 bg-gray-200 rounded-2xl" />
             <div className="h-12 bg-gray-100 rounded-2xl" />
@@ -229,7 +313,7 @@ const OutdoorPage = () => {
           </div>
         ) : (
           <>
-            {/* ── Hero Decision Card ─────────────────────────────────── */}
+            {/*  Hero Decision Card  */}
             <div className={`rounded-2xl bg-gradient-to-br ${aqiMeta.gradient} text-white p-6 mb-4 shadow-lg`}>
               <div className="flex items-start gap-4">
                 <DecisionIcon className="w-10 h-10 opacity-90 shrink-0 mt-1" />
@@ -262,7 +346,7 @@ const OutdoorPage = () => {
               </div>
             </div>
 
-            {/* ── Profile Selector ───────────────────────────────────── */}
+            {/*  Profile Selector  */}
             <div className="mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Health Profile</p>
@@ -290,7 +374,7 @@ const OutdoorPage = () => {
               </div>
             </div>
 
-            {/* ── AQI + Weather Strip ────────────────────────────────── */}
+            {/*  AQI + Weather Strip  */}
             <div className="grid grid-cols-4 gap-2.5 mb-5">
               {/* AQI */}
               <div className="col-span-1 flex flex-col items-center justify-center bg-white rounded-xl border border-gray-100 shadow-sm p-3 gap-1">
@@ -334,7 +418,10 @@ const OutdoorPage = () => {
               </div>
             </div>
 
-            {/* ── Air Quality Breakdown (collapsible rows) ───────────── */}
+            {/*  Best Hours Today  */}
+            <BestHoursCard forecastData={forecastData} aqi={aqi} />
+
+            {/*  Air Quality Breakdown (collapsible rows)  */}
             <div className="mb-2">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
@@ -368,7 +455,7 @@ const OutdoorPage = () => {
               </div>
             </div>
 
-            {/* ── Footer note ────────────────────────────────────────── */}
+            {/*  Footer note  */}
             <p className="text-[10px] text-gray-300 text-center mt-4">
               Data source: OpenWeatherMap Air Pollution API · WHO 2021 thresholds
             </p>
