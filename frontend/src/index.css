@@ -2,19 +2,124 @@
 @tailwind components;
 @tailwind utilities;
 
+/*  Theme CSS Variables  */
+:root,
+[data-theme="dark"] {
+  --bg-page:         #090D16;
+  --glass-bg:        rgba(15, 23, 42, 0.5);
+  --glass-card-bg:   rgba(15, 23, 42, 0.45);
+  --glass-border:    rgba(255, 255, 255, 0.08);
+  --glass-accent-bg: rgba(16, 185, 129, 0.10);
+  --glass-accent-bd: rgba(16, 185, 129, 0.20);
+  --text-primary:    #e2e8f0;
+  --text-muted:      rgba(226, 232, 240, 0.40);
+  --select-bg:       #0f172a;
+  --select-color:    rgba(255, 255, 255, 0.75);
+}
+
+[data-theme="light"] {
+  --bg-page:         #e8f0f9;
+  --glass-bg:        rgba(248, 252, 255, 0.72);
+  --glass-card-bg:   rgba(255, 255, 255, 0.68);
+  --glass-border:    rgba(16, 185, 129, 0.18);
+  --glass-accent-bg: rgba(16, 185, 129, 0.12);
+  --glass-accent-bd: rgba(16, 185, 129, 0.30);
+  --text-primary:    #0f172a;
+  --text-muted:      rgba(15, 23, 42, 0.50);
+  --select-bg:       #ffffff;
+  --select-color:    rgba(15, 23, 42, 0.80);
+}
+
+/*  Select / dropdown theming  */
+select,
+select option {
+  background-color: var(--select-bg) !important;
+  color: var(--select-color) !important;
+}
+
+/*  Light mode: invert white text so it's readable  */
+[data-theme="light"] *:where([class*="text-white"]) {
+  color: rgba(15, 23, 42, 0.85) !important;
+}
+[data-theme="light"] .neon-text {
+  text-shadow: none;
+  color: #059669 !important;
+}
+[data-theme="light"] ::-webkit-scrollbar-track { background: #dce7f3; }
+
+/*  Glass morphism utilities  */
+@layer components {
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+  }
+  .glass-card {
+    background: var(--glass-card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 1rem;
+  }
+  .glass-accent {
+    background: var(--glass-accent-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-accent-bd);
+  }
+  .neon-text {
+    text-shadow: 0 0 20px rgba(16, 185, 129, 0.6), 0 0 40px rgba(16, 185, 129, 0.3);
+  }
+  .neon-border {
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3), 0 0 16px rgba(16, 185, 129, 0.1);
+  }
+  .bg-page {
+    background-color: var(--bg-page);
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .page-enter {
+    animation: pageEnter 0.22s ease-out both;
+  }
+  .tab-active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #10B981;
+  }
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @layer base {
   html {
     font-family: 'Inter', system-ui, sans-serif;
   }
   body {
-    @apply text-gray-900 antialiased;
-    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #dcfce7 100%);
-    background-attachment: fixed;
+    @apply antialiased;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
     margin: 0;
     min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
-  /* Automatic font for bangla */
   :lang(bn) {
     font-family: 'Noto Sans Bengali', sans-serif;
   }
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: #0f172a; }
+  ::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.3); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(16, 185, 129, 0.5); }
 }

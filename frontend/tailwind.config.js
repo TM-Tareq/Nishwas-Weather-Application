@@ -12,8 +12,11 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
+      maxWidth: {
+        '1440': '1440px',
+      },
       colors: {
-        // Nishwas brand colors — nature green
+        // Nishwas brand — Premium Aero-Green
         brand: {
           50:  '#f0fdf4',
           100: '#dcfce7',
@@ -26,28 +29,54 @@ export default {
           800: '#166534',
           900: '#14532d',
         },
-        // AQI scale colors (US EPA standard)
+        // Dark UI palette
+        slate: {
+          950: '#090D16',
+          900: '#0f172a',
+          800: '#1e293b',
+          700: '#334155',
+        },
+        // AQI scale
         aqi: {
-          good: '#22c55e', // 0-50    Good
-          moderate: '#eab308', // 51-100  Moderate
-          unhealthySG: '#f97316', // 101-150 Unhealthy for Sensitive Groups
-          unhealthy: '#ef4444', // 151-200 Unhealthy
-          veryUnhealthy: '#a855f7', // 201-300 Very Unhealthy
-          hazardous: '#7f1d1d', // 301+    Hazardous
+          good:        '#10B981',
+          moderate:    '#F59E0B',
+          unhealthySG: '#F97316',
+          unhealthy:   '#EF4444',
+          veryUnhealthy: '#A855F7',
+          hazardous:   '#7F1D1D',
         },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         bangla: ['Noto Sans Bengali', 'sans-serif'],
       },
+      backdropBlur: {
+        xs: '2px',
+      },
       keyframes: {
         'fade-in': {
-          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '0%':   { opacity: '0', transform: 'translateY(6px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%':      { transform: 'translateY(-12px)' },
+        },
+        'pulse-glow': {
+          '0%, 100%': { opacity: '0.4' },
+          '50%':      { opacity: '0.8' },
+        },
+        'count-up': {
+          '0%':   { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
       animation: {
-        'fade-in': 'fade-in 0.25s ease-out',
+        'fade-in':    'fade-in 0.25s ease-out',
+        'float':      'float 6s ease-in-out infinite',
+        'float-slow': 'float 9s ease-in-out infinite',
+        'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
+        'count-up':   'count-up 0.5s ease-out',
       },
     },
   },

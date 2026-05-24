@@ -116,9 +116,9 @@ The application will be available at `http://localhost:5173`.
 
 \`\`\`
 Nishwas-Weather-Application/
-├── frontend/         # React + Vite application
-├── backend/          # Spring Boot application
-└── docs/             # Technical documentation
+├ frontend/         # React + Vite application
+├ backend/          # Spring Boot application
+└ docs/             # Technical documentation
 \`\`\`
 
 ## 👤 Author
