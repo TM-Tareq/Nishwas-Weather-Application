@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import {
-  ArrowRight, Share2, Navigation2, Map, Leaf, Trophy,
-  Users, BarChart2, BookHeart, TrendingUp, Wind, Droplets,
-  Thermometer, Activity, AlertTriangle, CheckCircle2, XCircle, ShieldAlert, X,
+  ArrowRight, Share2, Navigation2,
+  Users, TrendingUp, Wind, Droplets, Thermometer,
+  Activity, AlertTriangle, CheckCircle2, XCircle, ShieldAlert, X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +28,7 @@ import OnboardingModal from '@/components/organisms/OnboardingModal';
 import NotificationPermissionBanner from '@/components/organisms/NotificationPermissionBanner';
 import ShareCardModal  from '@/components/organisms/ShareCardModal';
 import useAqiNotification from '@/hooks/useAqiNotification';
+import FluidWeatherMatrix from '@/components/organisms/FluidWeatherMatrix';
 
 //  Aero-Score computation 
 // Higher = safer air. 0–100 composite score.
@@ -104,23 +105,6 @@ const AQI_META = {
   4: { label: 'Poor',      gradient: 'from-red-500 to-red-700',         text: 'text-red-400'     },
   5: { label: 'Very Poor', gradient: 'from-purple-500 to-purple-800',   text: 'text-purple-400'  },
 };
-
-//  Quick stat pill — clickable variant when onClick provided
-const StatPill = ({ icon: Icon, label, value, color = 'text-white/70', onClick }) => (
-  <div
-    className={`glass-card px-3 py-2.5 flex items-center gap-2.5 transition-all duration-150 ${
-      onClick ? 'cursor-pointer hover:border-white/20 hover:bg-white/5 active:scale-[0.97]' : ''
-    }`}
-    onClick={onClick}
-  >
-    <Icon className={`w-4 h-4 ${color} flex-shrink-0`} />
-    <div className="flex-1 min-w-0">
-      <p className="text-[10px] text-white/30 uppercase tracking-widest leading-none">{label}</p>
-      <p className={`text-sm font-bold ${color} mt-0.5`}>{value}</p>
-    </div>
-    {onClick && <span className="text-[9px] text-white/20 flex-shrink-0">↑</span>}
-  </div>
-);
 
 //  Environmental Parameter Detail Sheet
 const ParamDetailSheet = ({ paramKey, humidity, windSpd, temp, feelsLike, aqi, pm25, onClose, t }) => {
@@ -475,48 +459,38 @@ const DashboardPage = () => {
           ].map(p => <NavChip key={p.path} {...p} navigate={navigate} />)}
         </div>
 
-        {/*  Unified Atmospheric Vector  */}
-        <div className="glass-card p-5 mb-5">
-          <div className="flex flex-col lg:flex-row gap-5">
-
-            {/* Aero-Score gauge */}
-            <div className="flex flex-col items-center justify-center lg:w-48 flex-shrink-0">
-              <AeroGauge score={isInitialLoading || aqiLoading ? 0 : aeroScore} label={t(`dashboard.aeroScore.${aeroMeta.labelKey}`)} color={aeroMeta.color} ring={aeroMeta.ring} />
-              <p className="text-[10px] text-white/30 mt-2 text-center uppercase tracking-widest">{t('dashboard.compositeAirSafety')}</p>
+        {/*  City + Aero strip  */}
+        {!isInitialLoading && weatherData && (
+          <div className="glass-card flex items-center gap-4 px-4 py-3 mb-4">
+            <img src={`https://openweathermap.org/img/wn/${weatherData.weather[0].icon}@2x.png`} alt="" className="w-12 h-12 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-white/40 uppercase tracking-widest">{weatherData.name}</p>
+              <p className="text-sm text-white/60 capitalize">{weatherData.weather[0].description}</p>
             </div>
-
-            {/* Divider */}
-            <div className="hidden lg:block w-px bg-white/8 self-stretch" />
-
-            {/* Weather + AQI metrics */}
-            <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {isInitialLoading || weatherLoading ? (
-                [...Array(6)].map((_, i) => <div key={i} className="glass-card h-16 animate-pulse" />)
-              ) : weatherData ? (
-                <>
-                  <div className="glass-card px-3 py-2.5 col-span-2 sm:col-span-1 flex items-center gap-3">
-                    <img src={`https://openweathermap.org/img/wn/${weatherData.weather[0].icon}@2x.png`} alt="" className="w-12 h-12" />
-                    <div>
-                      <p className="text-[10px] text-white/30 uppercase tracking-widest">{weatherData.name}</p>
-                      <p className="text-2xl font-extrabold text-white">{Math.round(temp)}°C</p>
-                      <p className="text-xs text-white/40 capitalize">{weatherData.weather[0].description}</p>
-                    </div>
-                  </div>
-                  <StatPill icon={Droplets}    label={t('weather.humidity')}   value={`${humidity}%`}                       color={humidity > 80 ? 'text-blue-400' : 'text-white/70'} onClick={() => setSelectedParam('humidity')} />
-                  <StatPill icon={Wind}        label={t('weather.wind')}       value={`${(windSpd * 3.6).toFixed(1)} km/h`} color={windSpd > 5 ? 'text-emerald-400' : 'text-white/70'} onClick={() => setSelectedParam('wind')} />
-                  <StatPill icon={Thermometer} label={t('weather.feelsLike')}  value={`${Math.round(feelsLike)}°C`}         onClick={() => setSelectedParam('feelsLike')} />
-                  {aqi && (
-                    <>
-                      <StatPill icon={Activity} label={t('dashboard.aqiLevel')} value={`${aqi} · ${t(`aqi.level.${aqi}`)}`} color={aqiMeta.text} onClick={() => setSelectedParam('aqi')} />
-                      <StatPill icon={Wind}      label="PM2.5"                   value={`${pm25?.toFixed(1)} μg/m³`}          color={aqiMeta.text} onClick={() => setSelectedParam('pm25')} />
-                    </>
-                  )}
-                </>
-              ) : (
-                <p className="text-white/30 text-sm col-span-3">{t('dashboard.weatherUnavailable')}</p>
-              )}
+            <div className="flex flex-col items-center flex-shrink-0">
+              <AeroGauge score={aeroScore} label={t(`dashboard.aeroScore.${aeroMeta.labelKey}`)} color={aeroMeta.color} ring={aeroMeta.ring} />
+              <p className="text-[9px] text-white/25 mt-1 uppercase tracking-widest">{t('dashboard.compositeAirSafety')}</p>
             </div>
           </div>
+        )}
+
+        {/*  Fluid Animated Weather Matrix  */}
+        <div className="mb-5">
+          {isInitialLoading || (weatherLoading && !weatherData) ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="rounded-2xl animate-pulse" style={{ height: 160, background: 'rgba(15,23,42,0.5)' }} />
+              ))}
+            </div>
+          ) : weatherData ? (
+            <FluidWeatherMatrix
+              weatherData={weatherData}
+              aqiData={aqiData}
+              onParamClick={setSelectedParam}
+            />
+          ) : (
+            <p className="text-white/30 text-sm">{t('dashboard.weatherUnavailable')}</p>
+          )}
         </div>
 
         {/*  Outdoor verdict  */}
