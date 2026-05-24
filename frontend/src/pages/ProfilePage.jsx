@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Briefcase, HeartPulse, ArrowRight, Leaf, Camera, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Briefcase, HeartPulse, ArrowRight, Leaf, Camera, Loader2, AlertCircle, BellRing } from 'lucide-react';
 import useAuthStore from '@/features/auth/store/authStore';
 import useProfileStore from '@/features/profile/store/profileStore';
 import usePhotoUpload from '@/features/profile/hooks/usePhotoUpload';
-import Navbar from '@/components/organisms/Navbar';
+import Navbar, { BottomNav } from '@/components/organisms/Navbar';
 
 const HEALTH_PROFILES = [
   { id: 'general',       icon: '🏃', label: 'General Public',       desc: 'No known health conditions' },
@@ -64,7 +64,7 @@ const SelectionCard = ({ item, isSelected, onSelect }) => (
 const ProfilePage = () => {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const { healthProfile, occupation, photoUrl, setHealthProfile, setOccupation } = useProfileStore();
+  const { healthProfile, occupation, photoUrl, aqiThreshold, setHealthProfile, setOccupation, setAqiThreshold } = useProfileStore();
   const { uploading, error: uploadError, fileInputRef, openFilePicker, handleFileChange } = usePhotoUpload();
   const [saved, setSaved] = useState(false);
 
@@ -78,10 +78,11 @@ const ProfilePage = () => {
   const occupationImpact = OCCUPATION_IMPACT[occupation];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen page-enter">
       <Navbar />
+      <BottomNav />
 
-      <div className="max-w-2xl mx-auto px-6 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-6">
 
         {/* Back */}
         <button
@@ -162,7 +163,7 @@ const ProfilePage = () => {
           Saved automatically
         </div>
 
-        {/* ── Health Profile ─────────────────────────────────────────── */}
+        {/*  Health Profile  */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
           <div className="flex items-center gap-2 mb-1">
             <HeartPulse className="w-4 h-4 text-brand-500" />
@@ -189,7 +190,7 @@ const ProfilePage = () => {
           </div>
         </div>
 
-        {/* ── Occupation ─────────────────────────────────────────────── */}
+        {/*  Occupation  */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
           <div className="flex items-center gap-2 mb-1">
             <Briefcase className="w-4 h-4 text-brand-500" />
@@ -216,7 +217,42 @@ const ProfilePage = () => {
           </div>
         </div>
 
-        {/* ── Go to Outdoor Check CTA ───────────────────────────────── */}
+        {/*  AQI Alert Threshold  */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+          <div className="flex items-center gap-2 mb-1">
+            <BellRing className="w-4 h-4 text-brand-500" />
+            <h3 className="font-bold text-gray-900">AQI Alert Threshold</h3>
+          </div>
+          <p className="text-xs text-gray-400 mb-4 leading-relaxed">
+            A banner will appear on your Dashboard when air quality reaches or exceeds this level.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { level: 1, label: 'Good',      color: 'border-emerald-400 bg-emerald-50 text-emerald-700' },
+              { level: 2, label: 'Fair',      color: 'border-yellow-400 bg-yellow-50 text-yellow-700'   },
+              { level: 3, label: 'Moderate',  color: 'border-orange-400 bg-orange-50 text-orange-700'   },
+              { level: 4, label: 'Poor',      color: 'border-red-400 bg-red-50 text-red-700'            },
+              { level: 5, label: 'Very Poor', color: 'border-purple-400 bg-purple-50 text-purple-700'   },
+            ].map(({ level, label, color }) => (
+              <button
+                key={level}
+                onClick={() => handleSelect(setAqiThreshold, level)}
+                className={`px-4 py-2 rounded-xl border-2 text-sm font-semibold transition-all duration-150 ${
+                  aqiThreshold === level
+                    ? color + ' scale-105 shadow-sm'
+                    : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300'
+                }`}
+              >
+                {level} — {label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-3">
+            Current threshold: <span className="font-semibold text-gray-600">AQI ≥ {aqiThreshold}</span>
+          </p>
+        </div>
+
+        {/*  Go to Outdoor Check CTA  */}
         <button
           onClick={() => navigate('/outdoor')}
           className="w-full flex items-center justify-between bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white rounded-2xl px-5 py-4 shadow-md shadow-brand-100 transition-all hover:shadow-lg group"
