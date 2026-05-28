@@ -6,7 +6,7 @@ import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Polyline, GeoJSON
 import L from 'leaflet';
 import {
   Compass, Navigation2, MapPin, X, Loader2, Wind,
-  LocateFixed, ArrowUpDown, Clock, Ruler,
+  LocateFixed, ArrowUpDown,
 } from 'lucide-react';
 import Navbar, { BottomNav } from '@/components/organisms/Navbar';
 import { fetchCurrentWeather, fetchAirQuality } from '@/features/weather/api/weatherApi';
@@ -513,40 +513,87 @@ const SpatialHubPage = () => {
         {routeLoad ? <><Loader2 className="w-4 h-4 animate-spin" />{t('spatial.finding')}</> : <><Wind className="w-4 h-4" />{t('spatial.findRoute')}</>}
       </button>
       {routeErr && <p className="text-red-400 text-sm glass-card px-3 py-2 rounded-xl">{routeErr}</p>}
+
       {routes && (
-        <div className="space-y-2.5">
-          {routes.map((route, i) => {
-            const avg  = avgAqiPerRoute[i];
-            const cai  = caiPerRoute[i];
-            const meta = avg ? AQI_META[Math.round(avg)] ?? AQI_META[3] : null;
-            return (
-              <button key={i} onClick={() => { setSelIdx(i); setShowMapMobile(true); }}
-                className={`w-full text-left glass-card p-3.5 transition-all ${selIdx === i ? 'border-emerald-500/40 neon-border' : 'hover:border-white/15'}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-3 h-3 rounded-full" style={{ background: ROUTE_COLORS[i] }} />
-                  <span className="text-sm font-bold text-white flex-1 truncate">{viaText(route.legs)}</span>
-                  <div className="flex gap-1 flex-shrink-0">
-                    {i === bestAirIdx && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">{t('spatial.bestAir')}</span>}
-                    {i === fastestIdx && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">{t('spatial.fastest')}</span>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-xs text-white/40">
-                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{fmtTime(route.duration)}</span>
-                  <span className="flex items-center gap-1"><Ruler className="w-3 h-3" />{fmtDist(route.distance)}</span>
-                  {cai && <span className={`ml-auto font-bold ${meta?.text}`}>CAI {cai}</span>}
-                </div>
-                {avg != null && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${meta?.bar}`} style={{ width: `${(avg / 5) * 100}%` }} />
+        <>
+          {/* Route count hint */}
+          <p className="text-[11px] text-white/30 px-1">
+            {routes.length} route{routes.length !== 1 ? 's' : ''} found · tap to select
+          </p>
+
+          <div className="space-y-2.5">
+            {routes.map((route, i) => {
+              const avg  = avgAqiPerRoute[i];
+              const cai  = caiPerRoute[i];
+              const meta = avg ? AQI_META[Math.round(avg)] ?? AQI_META[3] : null;
+              const isSel = selIdx === i;
+              return (
+                <button key={i} onClick={() => { setSelIdx(i); setShowMapMobile(true); }}
+                  className={`w-full text-left rounded-2xl p-3.5 transition-all border ${
+                    isSel
+                      ? 'border-emerald-500/60 bg-emerald-500/8 shadow-lg shadow-emerald-500/10'
+                      : 'border-white/8 bg-white/3 hover:border-white/20'
+                  }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: ROUTE_COLORS[i] }} />
+                    <span className="text-sm font-bold text-white flex-1 truncate">{viaText(route.legs)}</span>
+                    <div className="flex gap-1 flex-shrink-0">
+                      {i === bestAirIdx && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">{t('spatial.bestAir')}</span>}
+                      {i === fastestIdx && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">{t('spatial.fastest')}</span>}
                     </div>
-                    <span className={`text-[10px] font-bold ${meta?.text}`}>AQI {avg.toFixed(1)}</span>
                   </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
+
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-1.5 mb-2">
+                    <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      <p className="text-[9px] text-white/30 uppercase mb-0.5">Time</p>
+                      <p className="text-xs font-bold text-white">{fmtTime(route.duration)}</p>
+                    </div>
+                    <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      <p className="text-[9px] text-white/30 uppercase mb-0.5">Dist</p>
+                      <p className="text-xs font-bold text-white">{fmtDist(route.distance)}</p>
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 text-center ${meta?.bg ?? ''}`} style={!meta ? { background: 'rgba(255,255,255,0.05)' } : {}}>
+                      <p className="text-[9px] text-white/30 uppercase mb-0.5">CAI</p>
+                      <p className={`text-xs font-bold ${meta?.text ?? 'text-white/50'}`}>{cai ?? '—'}</p>
+                    </div>
+                  </div>
+
+                  {avg != null && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${meta?.bar}`} style={{ width: `${(avg / 5) * 100}%` }} />
+                      </div>
+                      <span className={`text-[10px] font-bold ${meta?.text}`}>AQI {avg.toFixed(1)}</span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Google Maps navigation button */}
+          <button
+            onClick={() => {
+              if (!from || !to) return;
+              const sel = routes[selIdx];
+              // Use waypoints from selected route for accurate navigation
+              const waypoints = sel
+                ? `${from.lat},${from.lon}/${to.lat},${to.lon}`
+                : `${from.lat},${from.lon}/${to.lat},${to.lon}`;
+              window.open(
+                `https://www.google.com/maps/dir/${waypoints}`,
+                '_blank',
+                'noopener,noreferrer'
+              );
+            }}
+            className="w-full flex items-center justify-center gap-2.5 text-white font-bold py-3.5 rounded-2xl transition-all text-sm shadow-lg"
+            style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+          >
+            <Navigation2 className="w-4 h-4" />
+            Navigate in Google Maps
+          </button>
+        </>
       )}
     </div>
   );
