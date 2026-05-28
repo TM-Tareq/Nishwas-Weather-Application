@@ -6,7 +6,7 @@ import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Polyline, GeoJSON
 import L from 'leaflet';
 import {
   Compass, Navigation2, MapPin, X, Loader2, Wind,
-  LocateFixed, ArrowUpDown,
+  LocateFixed, ArrowUpDown, Thermometer, Droplets, Gauge, Activity,
 } from 'lucide-react';
 import Navbar, { BottomNav } from '@/components/organisms/Navbar';
 import { fetchCurrentWeather, fetchAirQuality } from '@/features/weather/api/weatherApi';
@@ -243,56 +243,99 @@ const LocInput = ({ icon: Icon, placeholder, value, onChange, excludeLoc, rightI
 const MapExplorer = ({ clickedPos, clickWeather, clickAqi, panelLoad, onClearClick }) => {
   const { t } = useTranslation();
   const [cityData, setCityData] = useState([]);
+  const [cityLoading, setCityLoading] = useState(true);
 
+  // Fetch BOTH weather + AQI for every city so we can show all parameters
   useEffect(() => {
     Promise.allSettled(BD_CITIES.map(async (city) => {
-      const a = await fetchAirQuality({ lat: city.lat, lon: city.lon });
-      return { ...city, aqi: a?.list?.[0]?.main?.aqi ?? null };
-    })).then(r => setCityData(r.filter(x => x.status === 'fulfilled').map(x => x.value)));
+      const [wRes, aRes] = await Promise.allSettled([
+        fetchCurrentWeather({ lat: city.lat, lon: city.lon }),
+        fetchAirQuality({ lat: city.lat, lon: city.lon }),
+      ]);
+      return {
+        ...city,
+        weather: wRes.status === 'fulfilled' ? wRes.value : null,
+        aqi:     aRes.status === 'fulfilled' ? aRes.value?.list?.[0]?.main?.aqi ?? null : null,
+      };
+    })).then(r => {
+      setCityData(r.filter(x => x.status === 'fulfilled').map(x => x.value));
+      setCityLoading(false);
+    });
   }, []);
 
+  // Click panel data
   const aqiLevel = clickAqi?.list?.[0]?.main?.aqi;
   const aqiMeta  = aqiLevel ? AQI_META[aqiLevel] : null;
   const comp     = clickAqi?.list?.[0]?.components;
+  const cw       = clickWeather;
 
   return (
     <div className="flex flex-col h-full">
-      {/* Info panel — appears when user taps a point on the map */}
+
+      {/* ── Click info panel ── */}
       {(clickedPos || panelLoad) && (
-        <div className="glass-card p-4 mb-3 relative">
+        <div className="glass-card p-4 mb-4 relative flex-shrink-0">
           <button onClick={onClearClick} className="absolute top-3 right-3 text-white/30 hover:text-white/60">
             <X className="w-4 h-4" />
           </button>
+
           {panelLoad ? (
             <div className="flex items-center gap-2 text-white/40 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" /> {t('spatial.loading')}
             </div>
-          ) : clickWeather ? (
+          ) : cw ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-emerald-400" />
-                <p className="text-sm font-bold text-white">
-                  {clickWeather.name}{clickWeather.sys?.country ? `, ${clickWeather.sys.country}` : ''}
-                </p>
-              </div>
+              {/* Location + icon */}
               <div className="flex items-center gap-3">
-                <img src={`https://openweathermap.org/img/wn/${clickWeather.weather[0].icon}@2x.png`} alt="" className="w-12 h-12" />
-                <div>
-                  <p className="text-2xl font-extrabold text-white">{Math.round(clickWeather.main.temp)}°C</p>
-                  <p className="text-xs text-white/40 capitalize">{clickWeather.weather[0].description}</p>
+                <img src={`https://openweathermap.org/img/wn/${cw.weather[0].icon}@2x.png`} alt="" className="w-10 h-10 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-extrabold text-white truncate">
+                    {cw.name}{cw.sys?.country ? `, ${cw.sys.country}` : ''}
+                  </p>
+                  <p className="text-[11px] text-white/40 capitalize">{cw.weather[0].description}</p>
                 </div>
                 {aqiMeta && (
-                  <div className={`ml-auto px-3 py-1.5 rounded-xl border text-xs font-bold ${aqiMeta.bg} ${aqiMeta.text}`}>
-                    AQI {aqiLevel} · {aqiMeta.label}
+                  <div className={`px-2.5 py-1 rounded-xl border text-[11px] font-bold flex-shrink-0 ${aqiMeta.bg} ${aqiMeta.text}`}>
+                    AQI {aqiLevel}
                   </div>
                 )}
               </div>
-              {comp && (
+
+              {/* 4-stat weather row */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { Icon: Thermometer, label: 'Temp',     value: `${Math.round(cw.main.temp)}°C`,                     color: '#f97316' },
+                  { Icon: Droplets,    label: 'Humidity', value: `${cw.main.humidity}%`,                               color: '#38bdf8' },
+                  { Icon: Wind,        label: 'Wind',     value: `${(cw.wind.speed * 3.6).toFixed(1)} km/h`,           color: '#2dd4bf' },
+                  { Icon: Gauge,       label: 'Pressure', value: `${cw.main.pressure} hPa`,                            color: '#a78bfa' },
+                ].map(({ Icon, label, value, color }) => (
+                  <div key={label} className="rounded-xl px-2 py-2 text-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <Icon className="w-3.5 h-3.5 mx-auto mb-1" style={{ color }} />
+                    <p className="text-[9px] text-white/35 uppercase tracking-wide">{label}</p>
+                    <p className="text-[11px] font-bold text-white leading-tight mt-0.5">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Feels like + pollutant row */}
+              {(cw.main.feels_like != null || comp) && (
                 <div className="grid grid-cols-2 gap-1.5 text-xs">
-                  {[['PM2.5', comp.pm2_5], ['PM10', comp.pm10], ['NO₂', comp.no2], ['O₃', comp.o3]].map(([k, v]) => (
+                  {cw.main.feels_like != null && (
+                    <div className="glass-card px-2.5 py-1.5 flex justify-between">
+                      <span className="text-white/40">Feels like</span>
+                      <span className="text-white font-semibold">{Math.round(cw.main.feels_like)}°C</span>
+                    </div>
+                  )}
+                  {cw.visibility != null && (
+                    <div className="glass-card px-2.5 py-1.5 flex justify-between">
+                      <span className="text-white/40">Visibility</span>
+                      <span className="text-white font-semibold">{(cw.visibility / 1000).toFixed(1)} km</span>
+                    </div>
+                  )}
+                  {comp && [['PM2.5', comp.pm2_5], ['PM10', comp.pm10], ['NO₂', comp.no2], ['O₃', comp.o3]].map(([k, v]) => (
                     <div key={k} className="glass-card px-2.5 py-1.5 flex justify-between">
                       <span className="text-white/40">{k}</span>
-                      <span className="text-white font-semibold">{v?.toFixed(1)}</span>
+                      <span className="text-white font-semibold">{v?.toFixed(1)} μg/m³</span>
                     </div>
                   ))}
                 </div>
@@ -302,31 +345,69 @@ const MapExplorer = ({ clickedPos, clickWeather, clickAqi, panelLoad, onClearCli
         </div>
       )}
 
-      <p className="text-[11px] text-white/30 mb-3">
+      {/* Hint + legend */}
+      <p className="text-[11px] text-white/30 mb-2 flex-shrink-0">
         <MapPin className="w-3 h-3 inline mr-1 text-emerald-400" />
         {t('spatial.mapHint')}
       </p>
-      <div className="flex flex-wrap gap-2 mb-1">
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3 flex-shrink-0">
         {Object.entries(AQI_META).map(([k, v]) => (
           <span key={k} className="flex items-center gap-1 text-[10px] text-white/40">
-            <span className="w-2 h-2 rounded-full inline-block" style={{ background: v.color }} />{v.label}
+            <span className="w-2 h-2 rounded-full inline-block flex-shrink-0" style={{ background: v.color }} />{v.label}
           </span>
         ))}
       </div>
 
-      {/* City AQI list */}
-      <div className="mt-3 flex-1 overflow-y-auto space-y-1.5 scrollbar-hide">
-        {cityData.map(city => {
-          const m = city.aqi ? AQI_META[city.aqi] : null;
-          if (!m) return null;
-          return (
-            <div key={city.name} className={`glass-card px-3 py-2 flex items-center gap-3 ${m.bg}`}>
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: m.color }} />
-              <span className="text-sm font-medium text-white flex-1">{city.name}</span>
-              <span className={`text-xs font-bold ${m.text}`}>{m.label}</span>
-            </div>
-          );
-        })}
+      {/* ── City cards — all parameters ── */}
+      <div className="flex-1 overflow-y-auto space-y-2 scrollbar-hide">
+        {cityLoading
+          ? Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-16 rounded-2xl bg-white/5 animate-pulse" />
+            ))
+          : cityData.map(city => {
+              const aqiIdx = city.aqi;
+              const m      = aqiIdx ? AQI_META[aqiIdx] : null;
+              const w      = city.weather;
+              return (
+                <div
+                  key={city.name}
+                  className={`rounded-2xl p-3 border ${m?.bg ?? 'bg-white/5 border-white/8'}`}
+                >
+                  {/* City name + AQI badge */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {m && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: m.color }} />}
+                      <span className="text-sm font-bold text-white">{city.name}</span>
+                    </div>
+                    {m && (
+                      <span className={`text-[11px] font-extrabold ${m.text}`}>
+                        AQI {aqiIdx} · {m.label}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Parameter mini-row */}
+                  {w ? (
+                    <div className="grid grid-cols-4 gap-1">
+                      {[
+                        { Icon: Thermometer, val: `${Math.round(w.main.temp)}°C`,              color: '#f97316' },
+                        { Icon: Droplets,    val: `${w.main.humidity}%`,                        color: '#38bdf8' },
+                        { Icon: Wind,        val: `${(w.wind.speed * 3.6).toFixed(0)} km/h`,    color: '#2dd4bf' },
+                        { Icon: Activity,    val: `${w.main.pressure} hPa`,                     color: '#a78bfa' },
+                      ].map(({ Icon, val, color }, idx) => (
+                        <div key={idx} className="flex items-center gap-1">
+                          <Icon className="w-3 h-3 flex-shrink-0" style={{ color }} />
+                          <span className="text-[11px] text-white/70 font-medium truncate">{val}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-white/20">Weather unavailable</p>
+                  )}
+                </div>
+              );
+            })
+        }
       </div>
     </div>
   );
