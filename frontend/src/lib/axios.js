@@ -7,8 +7,10 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
     (config) => {
+        // Never send stale tokens to auth endpoints — avoids 403 from JWT filter
+        const isAuthRoute = config.url?.startsWith('/auth/');
         const token = localStorage.getItem('token');
-        if(token) {
+        if (token && !isAuthRoute) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;

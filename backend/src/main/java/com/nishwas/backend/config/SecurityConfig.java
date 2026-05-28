@@ -46,7 +46,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/ws/**", "/aqi/**").permitAll()
+                        // context-path=/api → full paths start with /api
+                        // include both forms so the filter works regardless of MVC matcher mode
+                        .requestMatchers(
+                                "/auth/**",     "/api/auth/**",
+                                "/aqi/**",      "/api/aqi/**",
+                                "/ws/**",       "/wss/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
