@@ -21,7 +21,7 @@ public class UserController {
     public ResponseEntity<AuthResponse> getMe(Authentication auth) {
         User user = userRepository.findByEmail(auth.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return ResponseEntity.ok(new AuthResponse(null, user.getId(), user.getEmail(), user.getName()));
+        return ResponseEntity.ok(new AuthResponse(null, user.getId(), user.getEmail(), user.getName(), user.getRole()));
     }
 
     @DeleteMapping("/me")

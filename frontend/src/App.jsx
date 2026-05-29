@@ -9,6 +9,8 @@ import AnalyticsPage  from '@/pages/AnalyticsPage';
 import NexusPage      from '@/pages/NexusPage';
 import NotFoundPage   from '@/pages/NotFoundPage';
 import ProtectedRoute from '@/routes/ProtectedRoute';
+import AdminRoute     from '@/routes/AdminRoute';
+import AdminPage      from '@/pages/AdminPage';
 import useThemeStore  from '@/store/themeStore';
 
 const ThemeInit = () => {
@@ -27,6 +29,9 @@ const App = () => (
 
       <Route path="/login"  element={<Navigate to="/auth" replace />} />
       <Route path="/signup" element={<Navigate to="/auth?mode=signup" replace />} />
+
+      {/* Admin */}
+      <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
 
       {/* Pages */}
       <Route path="/dashboard"   element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

@@ -11,6 +11,7 @@ import com.nishwas.backend.repository.UserRepository;
 import com.nishwas.backend.repository.UserStatsRepository;
 import com.nishwas.backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,28 +30,53 @@ public class AuthService {
     private final HealthEntryRepository healthEntryRepository;
     private final UserStatsRepository userStatsRepository;
 
+    /**
+     * Email that receives ADMIN role on registration.
+     * Set ADMIN_EMAIL env var in production (e.g. your account email).
+     * Default: admin@nishwas.com
+     */
+    @Value("${admin.email:admin@nishwas.com}")
+    private String adminEmail;
+
     public AuthResponse register(RegisterRequest request) {
-        if(userRepository.existsByEmail(request.email())) {
+        if (userRepository.existsByEmail(request.email())) {
             throw new RuntimeException("Email already registered: " + request.email());
         }
+
+        String role = request.email().equalsIgnoreCase(adminEmail) ? "ADMIN" : "USER";
 
         User user = new User();
         user.setEmail(request.email());
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setName(request.name());
+        user.setRole(role);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 
         User savedUser = userRepository.save(user);
+        String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getRole());
 
-        String token = jwtUtil.generateToken(savedUser.getEmail());
+        return new AuthResponse(token, savedUser.getId(), savedUser.getEmail(),
+                savedUser.getName(), savedUser.getRole());
+    }
 
-        return new AuthResponse(
-                token,
-                savedUser.getId(),
-                savedUser.getEmail(),
-                savedUser.getName()
-        );
+    public AuthResponse login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new RuntimeException("Invalid email or password");
+        }
+
+        // Ensure existing users without a role get USER
+        if (user.getRole() == null || user.getRole().isBlank()) {
+            user.setRole("USER");
+            userRepository.save(user);
+        }
+
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        return new AuthResponse(token, user.getId(), user.getEmail(),
+                user.getName(), user.getRole());
     }
 
     public void deleteAccount(String email) {
@@ -61,22 +87,5 @@ public class AuthService {
         healthEntryRepository.deleteByUser_Email(email);
         userStatsRepository.deleteByUserEmail(email);
         userRepository.delete(user);
-    }
-
-    public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.email()).orElseThrow(()-> new RuntimeException("Invalid email or password"));
-
-        if(!passwordEncoder.matches(request.password(), user.getPassword())) {
-            throw new RuntimeException("Invalid email or password");
-        }
-
-        String token = jwtUtil.generateToken(user.getEmail());
-
-        return new AuthResponse(
-                token,
-                user.getId(),
-                user.getEmail(),
-                user.getName()
-        );
     }
 }

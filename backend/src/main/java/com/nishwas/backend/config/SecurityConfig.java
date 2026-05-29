@@ -47,12 +47,13 @@ public class SecurityConfig {
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // context-path=/api → full paths start with /api
-                        // include both forms so the filter works regardless of MVC matcher mode
                         .requestMatchers(
                                 "/auth/**",     "/api/auth/**",
                                 "/aqi/**",      "/api/aqi/**",
                                 "/ws/**",       "/wss/**"
                         ).permitAll()
+                        // Admin endpoints require ADMIN role (Spring adds "ROLE_" prefix automatically)
+                        .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

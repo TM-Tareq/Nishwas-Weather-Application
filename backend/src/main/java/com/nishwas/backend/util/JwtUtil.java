@@ -18,36 +18,35 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private Long jwtExpirationMs;
 
-//  Convert string secret to SecretKey object
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
-//    Generate a JWT token for the given email
-    public String generateToken(String email) {
+    /** Generate a JWT token embedding both email (subject) and role (claim). */
+    public String generateToken(String email, String role) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
         return Jwts.builder()
                 .subject(email)
+                .claim("role", role != null ? role : "USER")
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(getSigningKey())
                 .compact();
     }
 
-//    Extract email(subject) from token
+    /** Extract the email (subject) from a validated token. */
     public String extractEmail(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-
-        return claims.getSubject();
+        return getClaims(token).getSubject();
     }
 
-//    Validate token
+    /** Extract the role claim; returns "USER" as a safe default for legacy tokens. */
+    public String extractRole(String token) {
+        Object role = getClaims(token).get("role");
+        return role != null ? role.toString() : "USER";
+    }
+
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
@@ -60,4 +59,11 @@ public class JwtUtil {
         }
     }
 
+    private Claims getClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
 }

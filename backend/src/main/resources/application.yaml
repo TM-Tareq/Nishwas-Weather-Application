@@ -37,3 +37,7 @@ logging:
 jwt:
   secret: ${JWT_SECRET:8f3a9b2c5d7e1f4a6b8c3d5e2f7a9b1c4d6e3f5a8b7c2d9e1f4a6b3c5d8e2f7a9}
   expiration: ${JWT_EXPIRATION:86400000}
+
+# Admin configuration — set ADMIN_EMAIL env var to your account email to grant admin access
+admin:
+  email: ${ADMIN_EMAIL:admin@nishwas.com}

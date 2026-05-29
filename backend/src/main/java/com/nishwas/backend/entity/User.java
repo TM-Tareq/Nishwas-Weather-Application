@@ -24,4 +24,8 @@ public class User {
     private LocalDateTime createdAt;
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    /** "USER" or "ADMIN" — stored in JWT claims so admin routes are stateless */
+    @Column(nullable = false, length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'USER'")
+    private String role = "USER";
 }
