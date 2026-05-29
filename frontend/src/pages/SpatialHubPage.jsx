@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueries } from '@tanstack/react-query';
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Polyline, GeoJSON, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import {
   Compass, Navigation2, MapPin, X, Loader2, Wind,
@@ -35,9 +35,9 @@ const AQI_META = {
   5: { label: 'Very Poor', color: '#A855F7', bg: 'bg-purple-500/20 border-purple-500/30',  text: 'text-purple-400',  bar: 'bg-purple-600'  },
 };
 
-// Map parameter definitions — AQI uses Leaflet, others use Windy animated embed
+// Map parameter definitions — all use Windy animated embed
 const MAP_PARAMS = [
-  { key: 'aqi',      label: 'AQI',         Icon: Activity,    windyKey: null,       gradient: 'from-emerald-500 to-teal-500',   accent: '#10b981' },
+  { key: 'aqi',      label: 'AQI',         Icon: Activity,    windyKey: 'pm2p5',    gradient: 'from-emerald-500 to-teal-500',   accent: '#10b981' },
   { key: 'wind',     label: 'Wind',         Icon: Wind,        windyKey: 'wind',     gradient: 'from-teal-500 to-cyan-500',      accent: '#2dd4bf' },
   { key: 'rh',       label: 'Humidity',     Icon: Droplets,    windyKey: 'rh',       gradient: 'from-sky-400 to-blue-500',       accent: '#38bdf8' },
   { key: 'temp',     label: 'Temp',         Icon: Thermometer, windyKey: 'temp',     gradient: 'from-orange-500 to-red-500',     accent: '#f97316' },
@@ -106,33 +106,6 @@ const ParamStrip = ({ value, onChange }) => (
   </div>
 );
 
-//  Bangladesh boundary
-const BangladeshOverlay = ({ avgAqi }) => {
-  const [geojson, setGeojson] = useState(null);
-
-  useEffect(() => {
-    fetch(
-      'https://raw.githubusercontent.com/wmgeolab/geoBoundaries/main/releaseData/gbOpen/BGD/ADM0/geoBoundaries-BGD-ADM0_simplified.geojson'
-    )
-      .then((r) => r.json())
-      .then(setGeojson)
-      .catch(() => {});
-  }, []);
-
-  const meta = avgAqi ? (AQI_META[Math.round(avgAqi)] ?? AQI_META[3]) : AQI_META[1];
-  if (!geojson) return null;
-  return (
-    <GeoJSON
-      key={meta.color}
-      data={geojson}
-      style={{
-        color: meta.color, weight: 2.5, opacity: 0.85,
-        fillColor: meta.color, fillOpacity: 0.13, dashArray: null,
-      }}
-    />
-  );
-};
-
 //  Helpers
 const fmtTime = (s) => { const m = Math.round(s / 60); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m} min`; };
 const fmtDist = (m) => m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
@@ -199,9 +172,6 @@ const fetchOsrmRoutes = async (from, to) => {
     throw e;
   } finally { clearTimeout(timer); }
 };
-
-//  Map handlers
-const ClickHandler = ({ onMapClick }) => { useMapEvents({ click: (e) => onMapClick(e.latlng) }); return null; };
 
 const MapViewFit = ({ routes, from }) => {
   const map = useMap();
@@ -287,9 +257,8 @@ const LocInput = ({ icon: Icon, placeholder, value, onChange, excludeLoc, rightI
 };
 
 //  Map Explorer Tab
-const MapExplorer = ({ clickedPos, clickWeather, clickAqi, panelLoad, onClearClick, mapParam, onParamChange }) => {
-  const { t } = useTranslation();
-  const [cityData, setCityData]     = useState([]);
+const MapExplorer = ({ mapParam, onParamChange }) => {
+  const [cityData, setCityData]       = useState([]);
   const [cityLoading, setCityLoading] = useState(true);
 
   // Fetch weather + AQI for every city on mount
@@ -311,13 +280,15 @@ const MapExplorer = ({ clickedPos, clickWeather, clickAqi, panelLoad, onClearCli
   }, []);
 
   const activeParamMeta = MAP_PARAMS.find(p => p.key === mapParam);
-  const isAqi           = mapParam === 'aqi';
 
-  // Click panel data (only relevant in AQI / Leaflet mode)
-  const aqiLevel = clickAqi?.list?.[0]?.main?.aqi;
-  const aqiMeta  = aqiLevel ? AQI_META[aqiLevel] : null;
-  const comp     = clickAqi?.list?.[0]?.components;
-  const cw       = clickWeather;
+  const PARAM_DESC = {
+    aqi:      'PM2.5 / AQI animated overlay. Purple = heavily polluted.',
+    wind:     'Animated wind flow with direction arrows. Colours show speed.',
+    rh:       'Relative humidity overlay. Dark blue = very humid.',
+    temp:     'Surface temperature. Red = hot, blue = cold.',
+    pressure: 'Sea-level pressure field with isobars.',
+    rain:     'Precipitation forecast — rain intensity in mm/h.',
+  };
 
   return (
     <div className="flex flex-col h-full gap-3">
@@ -328,101 +299,18 @@ const MapExplorer = ({ clickedPos, clickWeather, clickAqi, panelLoad, onClearCli
         <ParamStrip value={mapParam} onChange={onParamChange} />
       </div>
 
-      {/* ── Windy description when non-AQI param selected ── */}
-      {!isAqi && (
+      {/* ── Active layer description ── */}
+      {activeParamMeta && (
         <div
-          className={`rounded-2xl p-3 flex items-start gap-3 bg-gradient-to-br ${activeParamMeta.gradient} bg-opacity-10`}
+          className="rounded-2xl p-3 flex items-start gap-3"
           style={{ background: `${activeParamMeta.accent}18`, border: `1px solid ${activeParamMeta.accent}33` }}
         >
           <activeParamMeta.Icon className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: activeParamMeta.accent }} />
           <div>
             <p className="text-sm font-bold text-white mb-0.5">{activeParamMeta.label} · Live Animated Map</p>
-            <p className="text-[11px] text-white/45 leading-relaxed">
-              {mapParam === 'wind'     && 'Animated wind flow with direction arrows. Colours show speed.'}
-              {mapParam === 'rh'       && 'Relative humidity overlay. Dark blue = very humid.'}
-              {mapParam === 'temp'     && 'Surface temperature. Red = hot, blue = cold.'}
-              {mapParam === 'pressure' && 'Sea-level pressure field with isobars.'}
-              {mapParam === 'rain'     && 'Precipitation forecast — rain intensity in mm/h.'}
-            </p>
+            <p className="text-[11px] text-white/45 leading-relaxed">{PARAM_DESC[mapParam]}</p>
           </div>
         </div>
-      )}
-
-      {/* ── Click info panel (AQI mode only) ── */}
-      {isAqi && (clickedPos || panelLoad) && (
-        <div className="glass-card p-4 relative flex-shrink-0">
-          <button onClick={onClearClick} className="absolute top-3 right-3 text-white/30 hover:text-white/60">
-            <X className="w-4 h-4" />
-          </button>
-
-          {panelLoad ? (
-            <div className="flex items-center gap-2 text-white/40 text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" /> {t('spatial.loading')}
-            </div>
-          ) : cw ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <img src={`https://openweathermap.org/img/wn/${cw.weather[0].icon}@2x.png`} alt="" className="w-10 h-10 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-extrabold text-white truncate">
-                    {cw.name}{cw.sys?.country ? `, ${cw.sys.country}` : ''}
-                  </p>
-                  <p className="text-[11px] text-white/40 capitalize">{cw.weather[0].description}</p>
-                </div>
-                {aqiMeta && (
-                  <div className={`px-2.5 py-1 rounded-xl border text-[11px] font-bold flex-shrink-0 ${aqiMeta.bg} ${aqiMeta.text}`}>
-                    AQI {aqiLevel}
-                  </div>
-                )}
-              </div>
-
-              {/* 4-stat weather row */}
-              <div className="grid grid-cols-4 gap-1.5">
-                {[
-                  { Icon: Thermometer, label: 'Temp',     value: `${Math.round(cw.main.temp)}°C`,           color: '#f97316' },
-                  { Icon: Droplets,    label: 'Humidity', value: `${cw.main.humidity}%`,                    color: '#38bdf8' },
-                  { Icon: Wind,        label: 'Wind',     value: `${(cw.wind.speed * 3.6).toFixed(1)} km/h`, color: '#2dd4bf' },
-                  { Icon: Gauge,       label: 'Pressure', value: `${cw.main.pressure} hPa`,                 color: '#a78bfa' },
-                ].map(({ Icon, label, value, color }) => (
-                  <div key={label} className="rounded-xl px-2 py-2 text-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                    <Icon className="w-3.5 h-3.5 mx-auto mb-1" style={{ color }} />
-                    <p className="text-[9px] text-white/35 uppercase tracking-wide">{label}</p>
-                    <p className="text-[11px] font-bold text-white leading-tight mt-0.5">{value}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Pollutants */}
-              {comp && (
-                <div className="grid grid-cols-2 gap-1.5 text-xs">
-                  {[['PM2.5', comp.pm2_5], ['PM10', comp.pm10], ['NO₂', comp.no2], ['O₃', comp.o3]].map(([k, v]) => (
-                    <div key={k} className="glass-card px-2.5 py-1.5 flex justify-between">
-                      <span className="text-white/40">{k}</span>
-                      <span className="text-white font-semibold">{v?.toFixed(1)} μg/m³</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : <p className="text-red-400 text-sm">{t('spatial.couldNotLoad')}</p>}
-        </div>
-      )}
-
-      {/* Hint + legend (AQI mode only) */}
-      {isAqi && (
-        <>
-          <p className="text-[11px] text-white/30 flex-shrink-0">
-            <MapPin className="w-3 h-3 inline mr-1 text-emerald-400" />
-            {t('spatial.mapHint')}
-          </p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 flex-shrink-0">
-            {Object.entries(AQI_META).map(([k, v]) => (
-              <span key={k} className="flex items-center gap-1 text-[10px] text-white/40">
-                <span className="w-2 h-2 rounded-full inline-block flex-shrink-0" style={{ background: v.color }} />{v.label}
-              </span>
-            ))}
-          </div>
-        </>
       )}
 
       {/* ── City cards ── */}
@@ -433,23 +321,16 @@ const MapExplorer = ({ clickedPos, clickWeather, clickAqi, panelLoad, onClearCli
               <div key={i} className="h-16 rounded-2xl bg-white/5 animate-pulse" />
             ))
           : cityData.map(city => {
-              const aqiIdx = city.aqi;
-              const m      = aqiIdx ? AQI_META[aqiIdx] : null;
-              const w      = city.weather;
+              const aqiIdx    = city.aqi;
+              const m         = aqiIdx ? AQI_META[aqiIdx] : null;
+              const w         = city.weather;
               const activeVal = PARAM_CITY_VAL[mapParam]?.(w, aqiIdx) ?? '—';
 
               return (
-                <div
-                  key={city.name}
-                  className={`rounded-2xl p-3 border ${isAqi && m ? m.bg : 'bg-white/5 border-white/8'}`}
-                >
-                  {/* City name + active-param highlight value */}
+                <div key={city.name} className="rounded-2xl p-3 border bg-white/5 border-white/8">
+                  {/* City name + active-param value badge */}
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {isAqi && m && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: m.color }} />}
-                      <span className="text-sm font-bold text-white">{city.name}</span>
-                    </div>
-                    {/* Active parameter value badge */}
+                    <span className="text-sm font-bold text-white">{city.name}</span>
                     <span
                       className="text-xs font-extrabold px-2 py-0.5 rounded-lg"
                       style={{
@@ -461,20 +342,17 @@ const MapExplorer = ({ clickedPos, clickWeather, clickAqi, panelLoad, onClearCli
                     </span>
                   </div>
 
-                  {/* All-param mini row */}
+                  {/* All-param mini row — active one is fully bright */}
                   {w ? (
                     <div className="grid grid-cols-4 gap-1">
                       {[
-                        { Icon: Thermometer, val: `${Math.round(w.main.temp)}°C`,           color: '#f97316', pkey: 'temp'     },
-                        { Icon: Droplets,    val: `${w.main.humidity}%`,                    color: '#38bdf8', pkey: 'rh'       },
-                        { Icon: Wind,        val: `${(w.wind.speed * 3.6).toFixed(0)} km/h`, color: '#2dd4bf', pkey: 'wind'     },
-                        { Icon: Activity,    val: aqiIdx ? `AQI ${aqiIdx}` : '—',            color: '#10b981', pkey: 'aqi'      },
+                        { Icon: Thermometer, val: `${Math.round(w.main.temp)}°C`,            color: '#f97316', pkey: 'temp' },
+                        { Icon: Droplets,    val: `${w.main.humidity}%`,                     color: '#38bdf8', pkey: 'rh'   },
+                        { Icon: Wind,        val: `${(w.wind.speed * 3.6).toFixed(0)} km/h`, color: '#2dd4bf', pkey: 'wind' },
+                        { Icon: Activity,    val: m ? `${m.label}` : '—',                    color: m?.color ?? '#10b981', pkey: 'aqi' },
                       ].map(({ Icon, val, color, pkey }, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-1"
-                          style={mapParam === pkey ? { opacity: 1 } : { opacity: 0.45 }}
-                        >
+                        <div key={idx} className="flex items-center gap-1"
+                          style={{ opacity: mapParam === pkey ? 1 : 0.4 }}>
                           <Icon className="w-3 h-3 flex-shrink-0" style={{ color }} />
                           <span className="text-[11px] text-white font-medium truncate">{val}</span>
                         </div>
@@ -492,37 +370,6 @@ const MapExplorer = ({ clickedPos, clickWeather, clickAqi, panelLoad, onClearCli
   );
 };
 
-//  City AQI Markers (Leaflet layer — only in AQI mode)
-const CityMarkers = ({ onAvgAqi }) => {
-  const [cityData, setCityData] = useState([]);
-  useEffect(() => {
-    Promise.allSettled(BD_CITIES.map(async c => {
-      const a = await fetchAirQuality({ lat: c.lat, lon: c.lon });
-      return { ...c, aqi: a?.list?.[0]?.main?.aqi ?? null };
-    })).then(r => {
-      const data = r.filter(x => x.status === 'fulfilled').map(x => x.value);
-      setCityData(data);
-      const vals = data.map(d => d.aqi).filter(Boolean);
-      if (vals.length) onAvgAqi?.(vals.reduce((a, b) => a + b, 0) / vals.length);
-    });
-  }, [onAvgAqi]);
-  return cityData.map(city => {
-    if (!city.aqi) return null;
-    const meta = AQI_META[city.aqi];
-    return (
-      <CircleMarker key={city.name} center={[city.lat, city.lon]} radius={14}
-        pathOptions={{ fillColor: meta.color, fillOpacity: 0.85, color: '#090D16', weight: 2 }}>
-        <Popup>
-          <div className="text-center">
-            <p className="font-bold text-sm">{city.name}</p>
-            <p className="text-xs mt-1">{meta.label} · AQI {city.aqi}</p>
-          </div>
-        </Popup>
-      </CircleMarker>
-    );
-  });
-};
-
 //  Spatial Hub Page
 const SpatialHubPage = () => {
   const { t } = useTranslation();
@@ -530,12 +377,6 @@ const SpatialHubPage = () => {
   const initialTab             = searchParams.get('tab') === 'route' ? 'route' : 'map';
   const [tab, setTab]           = useState(initialTab);
   const [mapParam, setMapParam] = useState('aqi');
-
-  const [mapClickPos, setMCPos]     = useState(null);
-  const [clickWeather, setClickW]   = useState(null);
-  const [clickAqi,    setClickAqi]  = useState(null);
-  const [clickPanelLoad, setClickL] = useState(false);
-  const [avgAqi, setAvgAqi]         = useState(null);
 
   const { location: geoLocation } = useGeolocation();
   const mapCenter = geoLocation ? [geoLocation.lat, geoLocation.lon] : [23.8103, 90.4125];
@@ -545,26 +386,6 @@ const SpatialHubPage = () => {
     queryFn:  () => fetchCurrentWeather(geoLocation),
     enabled:  !!geoLocation,
   });
-
-  // Clear click panel when switching away from AQI mode
-  const handleParamChange = (param) => {
-    setMapParam(param);
-    if (param !== 'aqi') {
-      setMCPos(null); setClickW(null); setClickAqi(null);
-    }
-  };
-
-  const handleMapClick = async ({ lat, lng }) => {
-    if (tab !== 'map' || mapParam !== 'aqi') return;
-    setMCPos({ lat, lng }); setClickW(null); setClickAqi(null); setClickL(true);
-    try {
-      const [w, a] = await Promise.allSettled([fetchCurrentWeather({ lat, lon: lng }), fetchAirQuality({ lat, lon: lng })]);
-      setClickW(w.status === 'fulfilled' ? w.value : null);
-      setClickAqi(a.status === 'fulfilled' ? a.value : null);
-    } finally { setClickL(false); }
-  };
-
-  const handleClearClick = () => { setMCPos(null); setClickW(null); setClickAqi(null); };
 
   // Route state
   const [from, setFrom] = useState(null);
@@ -628,9 +449,9 @@ const SpatialHubPage = () => {
     );
   };
 
-  // ── Map section: Windy iframe (wind/humidity/temp/etc.) OR Leaflet (AQI)
+  // ── Map section: Windy iframe for map tab, Leaflet for route tab
   const activeParam = MAP_PARAMS.find(p => p.key === mapParam);
-  const showWindy   = tab === 'map' && !!activeParam?.windyKey;
+  const showWindy   = tab === 'map';
 
   const LeafletMap = (
     <MapContainer center={mapCenter} zoom={7} style={{ height: '100%', width: '100%' }}>
@@ -638,16 +459,11 @@ const SpatialHubPage = () => {
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         attribution='&copy; <a href="https://carto.com/">CARTO</a>'
       />
-      {/* Click handler only in AQI mode on map tab */}
-      {tab === 'map' && mapParam === 'aqi' && <ClickHandler onMapClick={handleMapClick} />}
-      <BangladeshOverlay avgAqi={avgAqi} />
-      <CityMarkers onAvgAqi={setAvgAqi} />
       {geoLocation && (
         <Marker position={[geoLocation.lat, geoLocation.lon]} icon={userIcon}>
           <Popup><p className="text-sm font-semibold">{t('spatial.yourLocation')}</p></Popup>
         </Marker>
       )}
-      {tab === 'map' && mapParam === 'aqi' && mapClickPos && <Marker position={[mapClickPos.lat, mapClickPos.lng]} />}
       {tab === 'route' && (
         <>
           {routes && (
@@ -683,15 +499,7 @@ const SpatialHubPage = () => {
   const MapSection = showWindy ? WindyMap : LeafletMap;
 
   // MapExplorer props (shared)
-  const explorerProps = {
-    clickedPos: mapClickPos,
-    clickWeather,
-    clickAqi,
-    panelLoad: clickPanelLoad,
-    onClearClick: handleClearClick,
-    mapParam,
-    onParamChange: handleParamChange,
-  };
+  const explorerProps = { mapParam, onParamChange: setMapParam };
 
   // Route planner sidebar
   const RouteSidebarContent = (
@@ -822,7 +630,7 @@ const SpatialHubPage = () => {
             className="px-3 py-2 flex-shrink-0 border-b border-white/8"
             style={{ background: 'rgba(9,13,22,0.97)' }}
           >
-            <ParamStrip value={mapParam} onChange={handleParamChange} />
+            <ParamStrip value={mapParam} onChange={setMapParam} />
           </div>
         )}
 
