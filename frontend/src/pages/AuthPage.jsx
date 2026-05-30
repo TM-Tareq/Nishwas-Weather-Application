@@ -114,8 +114,15 @@ const AuthPage = () => {
         : await registerUser({ name: data.name, email: data.email, password: data.password });
 
       if (res.token) {
-        login(res.token, { id: res.id, name: res.name ?? data.name ?? data.email, email: res.email ?? data.email });
-        navigate('/dashboard');
+        const userObj = {
+          id:    res.userId ?? res.id,
+          name:  res.name  ?? data.name ?? data.email,
+          email: res.email ?? data.email,
+          role:  res.role  ?? 'USER',
+        };
+        login(res.token, userObj);
+        // Admins land on the admin panel, everyone else on dashboard
+        navigate(userObj.role === 'ADMIN' ? '/admin' : '/dashboard');
       } else {
         setError('Unexpected response. Please try again.');
       }
