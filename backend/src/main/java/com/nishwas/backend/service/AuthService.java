@@ -68,9 +68,15 @@ public class AuthService {
             throw new RuntimeException("Invalid email or password");
         }
 
-        // Ensure existing users without a role get USER
-        if (user.getRole() == null || user.getRole().isBlank()) {
-            user.setRole("USER");
+        // Always enforce correct role on login:
+        // - admin email → ADMIN (even if account was created before role system)
+        // - everyone else → keep existing role, default to USER if blank
+        String correctRole = user.getEmail().equalsIgnoreCase(adminEmail)
+                ? "ADMIN"
+                : (user.getRole() == null || user.getRole().isBlank() ? "USER" : user.getRole());
+
+        if (!correctRole.equals(user.getRole())) {
+            user.setRole(correctRole);
             userRepository.save(user);
         }
 
